@@ -1516,6 +1516,17 @@ private fun ModernCarouselCard(
                             .zIndex(2f)
                     )
                 }
+
+                // NuvioTv-Clean: "✓ CLEAN" and digital release tags
+                item.metaPreview?.let { preview ->
+                    com.nuvio.tv.ui.components.CleanStreamPosterBadges(
+                        item = preview,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = NuvioTheme.spacing.sm, top = NuvioTheme.spacing.sm)
+                            .zIndex(2f)
+                    )
+                }
             }
         }
 

@@ -47,9 +47,12 @@ object CleanStreamBadges {
     private val queue = ConcurrentHashMap.newKeySet<String>()
     private var batchJob: Job? = null
 
-    /** Ask for the tags of [imdbId] (tt1234567). Each id is fetched once per session. */
+    /**
+     * Ask for the tags of a title: [imdbId] is tt1234567, or tmdb:movie:123 /
+     * tmdb:tv:123 for catalogs that use TMDB numbers. Each is fetched once per session.
+     */
     fun request(imdbId: String) {
-        if (!Regex("^tt\\d{1,10}$").matches(imdbId)) return
+        if (!Regex("^(tt\\d{1,10}|tmdb:(movie|tv):\\d{1,10})$").matches(imdbId)) return
         if (!CleanStreamSettings.current.enabled) return
         if (!requested.add(imdbId)) return
         queue.add(imdbId)

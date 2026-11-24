@@ -36,10 +36,7 @@ fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
     val serverHost = config.serverUrl.substringAfter("://").substringBefore('/')
     if (serverHost.isNotBlank() && item.poster?.contains(serverHost) == true) return
 
-    val imdbId = listOfNotNull(item.imdbId, item.id)
-        .map { it.substringBefore(':') }
-        .firstOrNull { it.matches(Regex("tt\\d+")) }
-        ?: return
+    val imdbId = badgeKeyFor(item) ?: return
     LaunchedEffect(imdbId) { CleanStreamBadges.request(imdbId) }
 
     val badges by CleanStreamBadges.badges.collectAsState()
@@ -51,6 +48,20 @@ fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
         if (badge.clean) Tag("✓ CLEAN", CleanTagColor)
         if (release != null) Tag(release, ReleaseTagColor)
     }
+}
+
+/**
+ * The id the server knows the title by: its IMDb id, or for catalogs that
+ * use TMDB numbers (ids like "tmdb:603"), tmdb:movie:603 / tmdb:tv:603.
+ */
+internal fun badgeKeyFor(item: MetaPreview): String? {
+    listOfNotNull(item.imdbId, item.id)
+        .map { it.substringBefore(':') }
+        .firstOrNull { it.matches(Regex("tt\\d+")) }
+        ?.let { return it }
+    val tmdb = Regex("^tmdb:(\\d+)").find(item.id)?.groupValues?.get(1) ?: return null
+    val kind = if (item.type == ContentType.MOVIE) "movie" else "tv"
+    return "tmdb:$kind:$tmdb"
 }
 
 @Composable
