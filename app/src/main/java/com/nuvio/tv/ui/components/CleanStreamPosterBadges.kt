@@ -2,9 +2,13 @@ package com.nuvio.tv.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -24,8 +28,9 @@ private val CleanTagColor = Color(0xFF2BB673)
 private val ReleaseTagColor = Color(0xE6101820)
 
 /**
- * NuvioTv-Clean: small tags in the corner of any poster: "✓ CLEAN" when the
- * title has confirmed skips, and the digital release status for movies.
+ * NuvioTv-Clean: small tags in the bottom corner of any poster: a green ✓
+ * when the title has confirmed skips, and for movies that are not out
+ * digitally yet, when they will be ("DIGITAL 12 DEC" or "IN CINEMAS").
  * Posters from the CleanStream add-on already have these drawn in, so they
  * are left alone.
  */
@@ -44,8 +49,12 @@ fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
     val release = if (item.type == ContentType.MOVIE) CleanStreamBadges.releaseText(badge) else null
     if (!badge.clean && release == null) return
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        if (badge.clean) Tag("✓ CLEAN", CleanTagColor)
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (badge.clean) CleanCheck()
         if (release != null) Tag(release, ReleaseTagColor)
     }
 }
@@ -62,6 +71,17 @@ internal fun badgeKeyFor(item: MetaPreview): String? {
     val tmdb = Regex("^tmdb:(\\d+)").find(item.id)?.groupValues?.get(1) ?: return null
     val kind = if (item.type == ContentType.MOVIE) "movie" else "tv"
     return "tmdb:$kind:$tmdb"
+}
+
+/** Small round green badge with a check mark. */
+@Composable
+private fun CleanCheck() {
+    Box(
+        modifier = Modifier.size(18.dp).background(CleanTagColor, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = "✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    }
 }
 
 @Composable

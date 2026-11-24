@@ -627,8 +627,8 @@ fun ContentCard(
                 CleanStreamPosterBadges(
                     item = item,
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = NuvioTheme.spacing.sm, top = NuvioTheme.spacing.sm)
+                        .align(Alignment.BottomStart)
+                        .padding(start = 6.dp, bottom = 6.dp)
                         .zIndex(2f)
                 )
             }

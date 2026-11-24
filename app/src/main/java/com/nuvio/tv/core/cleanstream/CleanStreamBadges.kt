@@ -100,10 +100,12 @@ object CleanStreamBadges {
         }
     }
 
-    /** Short text for the release tag: "DIGITAL", "DIGITAL 12 DEC", "IN CINEMAS" or null. */
+    /**
+     * Short text for the release tag, only for movies not out digitally yet:
+     * "DIGITAL 12 DEC", "IN CINEMAS", or null (already digital, or unknown).
+     */
     fun releaseText(badge: Badge, today: java.time.LocalDate = java.time.LocalDate.now()): String? =
         when (badge.digitalStatus) {
-            "digital" -> "DIGITAL"
             "cinema" -> "IN CINEMAS"
             "upcoming" -> badge.digitalDate?.let { raw ->
                 runCatching {
