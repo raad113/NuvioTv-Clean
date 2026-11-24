@@ -1,6 +1,6 @@
 """Builds the Nuvio Clean TV icons in the official Nuvio layout.
 
-Takes the Nuvio wordmark already in the app (drawable-nodpi/app_logo_wordmark.png),
+Takes the original Nuvio wordmark (branding/wordmarks/app_logo_wordmark.png),
 recolours the play mark from blue/purple to mint, adds the word "clean" and writes
 the launcher icon, TV banner and splash mark.
 
@@ -53,7 +53,7 @@ def font(size: int) -> ImageFont.FreeTypeFont:
     return f
 
 
-wordmark = recolour(Image.open(os.path.join(res, "drawable-nodpi", "app_logo_wordmark.png")))
+wordmark = recolour(Image.open(os.path.join(os.path.dirname(__file__), "wordmarks", "app_logo_wordmark.png")))
 mark = wordmark.crop((0, 0, MARK_RIGHT, wordmark.height))
 mark = mark.crop(mark.getbbox())
 
