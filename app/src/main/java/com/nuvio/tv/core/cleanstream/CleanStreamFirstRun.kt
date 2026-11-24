@@ -54,6 +54,8 @@ class CleanStreamFirstRun @Inject constructor(
         // Collections belong to a profile: import once for each profile when it becomes active
         scope.launch {
             profileManager.activeProfileId.collect { profileId ->
+                // Subtitle muting is a per-profile choice
+                CleanStreamSettings.setActiveProfile(context, profileId)
                 runCatching { importCollectionOnce(profileId) }
                     .onFailure { Log.w(TAG, "Collection import failed: ${it.message}") }
             }

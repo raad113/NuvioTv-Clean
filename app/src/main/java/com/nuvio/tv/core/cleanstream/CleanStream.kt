@@ -59,6 +59,10 @@ data class CleanStreamConfig(
     val offsetMs: Long = 0L,
     /** Severity given to scenes marked with the ♥ button: "low", "medium" or "high". */
     val quickSeverity: String = "medium",
+    /** Per profile: mute strong language found in the subtitles. */
+    val subtitleMuteEnabled: Boolean = false,
+    /** Per profile: extra words to mute, separated by commas. */
+    val customMuteWords: String = "",
 )
 
 /** Choices offered in settings, cycled by pressing the row. */
@@ -108,6 +112,11 @@ object CleanStreamSettings {
     private const val KEY_MARGIN = "margin_ms"
     private const val KEY_OFFSET = "offset_ms"
     private const val KEY_QUICK_SEVERITY = "quick_severity"
+    private const val KEY_SUB_MUTE_PREFIX = "subtitle_mute_enabled_"
+    private const val KEY_SUB_WORDS_PREFIX = "subtitle_mute_words_"
+
+    /** The Nuvio profile whose subtitle-muting settings are in use. */
+    private var activeProfileId: Int = 1
 
     /** Used until the viewer enters their own server in settings. */
     const val DEFAULT_SERVER_URL = "https://familyskips.duckdns.org"
@@ -135,6 +144,8 @@ object CleanStreamSettings {
             marginMs = p.getLong(KEY_MARGIN, 1_000L),
             offsetMs = p.getLong(KEY_OFFSET, 0L),
             quickSeverity = p.getString(KEY_QUICK_SEVERITY, null) ?: "medium",
+            subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + activeProfileId, false),
+            customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + activeProfileId, null) ?: "",
         )
     }
 
@@ -164,6 +175,28 @@ object CleanStreamSettings {
     fun setOffset(ms: Long) {
         prefs?.edit()?.putLong(KEY_OFFSET, ms)?.apply()
         state.value = state.value.copy(offsetMs = ms)
+    }
+
+    /** Called when the active Nuvio profile changes, to load that profile's settings. */
+    fun setActiveProfile(context: Context, profileId: Int) {
+        init(context)
+        activeProfileId = profileId
+        val p = prefs ?: return
+        state.value = state.value.copy(
+            subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + profileId, false),
+            customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + profileId, null) ?: "",
+        )
+    }
+
+    fun setSubtitleMuteEnabled(enabled: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_SUB_MUTE_PREFIX + activeProfileId, enabled)?.apply()
+        state.value = state.value.copy(subtitleMuteEnabled = enabled)
+    }
+
+    fun setCustomMuteWords(words: String) {
+        val clean = words.trim()
+        prefs?.edit()?.putString(KEY_SUB_WORDS_PREFIX + activeProfileId, clean)?.apply()
+        state.value = state.value.copy(customMuteWords = clean)
     }
 
     fun setQuickSeverity(severity: String) {

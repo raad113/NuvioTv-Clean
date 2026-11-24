@@ -583,6 +583,8 @@ class PlayerRuntimeController(
     internal var cleanContentKey: String? = null
     internal var cleanMarkStartMs: Long? = null
     internal var cleanShareJob: kotlinx.coroutines.Job? = null
+    internal var cleanSubtitleMutes: List<com.nuvio.tv.core.cleanstream.CleanSkip> = emptyList()
+    internal var cleanSubtitleSourceKey: String? = null
     internal var lastActiveSkipType: String? = null
     internal var autoSubtitleSelected: Boolean = false
     internal var isUserExplicitSubtitleSelection: Boolean = false

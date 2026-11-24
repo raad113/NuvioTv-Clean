@@ -5,7 +5,9 @@ import androidx.media3.exoplayer.SeekParameters
 import com.nuvio.tv.core.cleanstream.CleanSkip
 import com.nuvio.tv.core.cleanstream.CleanStreamClient
 import com.nuvio.tv.core.cleanstream.CleanStreamSettings
+import com.nuvio.tv.core.cleanstream.SubtitleProfanity
 import com.nuvio.tv.data.repository.SkipInterval
+import com.nuvio.tv.domain.model.Subtitle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -27,6 +29,9 @@ private const val CLEAN_SEEK_GUARD_MS = 1_500L
 private const val CLEAN_END_MARGIN_MS = 300L
 
 private const val CLEAN_NOTICE_MS = 3_000L
+
+/** Extra quiet time around a subtitle line that contains strong language. */
+private const val SUBTITLE_MUTE_PAD_MS = 250L
 
 /** Time to cancel a ♥ mark before it is shared. */
 private const val CLEAN_SHARE_DELAY_MS = 5_000L
@@ -56,6 +61,8 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanContentKey = contentKey
     cleanSkips = emptyList()
     cleanPending = emptyList()
+    cleanSubtitleSourceKey = null
+    cleanSubtitleMutes = emptyList()
     releaseCleanStreamMute()
 
     scope.launch {
@@ -98,9 +105,9 @@ private fun PlayerRuntimeController.cleanStreamContentId(id: String?, season: In
  * Called on each progress tick with the current position in milliseconds.
  */
 internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
-    val skips = cleanSkips
     val config = CleanStreamSettings.current
-    if (skips.isEmpty() || !config.enabled) {
+    refreshCleanStreamSubtitleMutes(config)
+    if (!config.enabled) {
         releaseCleanStreamMute()
         return
     }
@@ -110,24 +117,38 @@ internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
     // Timing adjustment and safety margin from settings
     val startShift = config.offsetMs - config.marginMs
     val endShift = config.offsetMs + config.marginMs
-    val active: CleanSkip? = skips.firstOrNull {
+    val active: CleanSkip? = cleanSkips.firstOrNull {
         positionMs >= it.startMs + startShift && positionMs < it.endMs + endShift - CLEAN_END_MARGIN_MS
     }
 
-    // Leaving a muted scene: turn the sound back on
-    if (cleanMutedKey != null && active?.key != cleanMutedKey) {
+    // Strong language found in the subtitles (follows the subtitle delay setting)
+    val subtitleDelay = _uiState.value.subtitleDelayMs.toLong()
+    val subtitleMute: CleanSkip? = if (config.subtitleMuteEnabled) {
+        cleanSubtitleMutes.firstOrNull {
+            positionMs >= it.startMs + subtitleDelay - SUBTITLE_MUTE_PAD_MS &&
+                positionMs < it.endMs + subtitleDelay + SUBTITLE_MUTE_PAD_MS
+        }
+    } else null
+
+    val muteTarget: CleanSkip? = when {
+        active?.channel == "audio" -> active
+        subtitleMute != null -> subtitleMute
+        else -> null
+    }
+    val muteKey = muteTarget?.let { if (it === subtitleMute) "sub-${it.key}" else it.key }
+
+    // Leaving a muted stretch: turn the sound back on
+    if (cleanMutedKey != null && muteKey != cleanMutedKey) {
         releaseCleanStreamMute()
     }
-    if (active == null) return
-
-    if (active.channel == "audio") {
-        if (cleanMutedKey == null) {
-            setCleanStreamMuted(true)
-            cleanMutedKey = active.key
-            showCleanStreamNotice("Muted: ${active.label}")
-        }
-        return
+    if (muteTarget != null && cleanMutedKey == null) {
+        setCleanStreamMuted(true)
+        cleanMutedKey = muteKey
+        // Subtitle mutes are short and frequent, so they stay silent
+        if (muteTarget !== subtitleMute) showCleanStreamNotice("Muted: ${muteTarget.label}")
     }
+
+    if (active == null || active.channel == "audio") return
 
     val now = SystemClock.elapsedRealtime()
     if (now - cleanLastSeekAt < CLEAN_SEEK_GUARD_MS) return
@@ -139,6 +160,39 @@ internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
     scheduleProgressSyncAfterSeek()
     val seconds = ((active.endMs - active.startMs) / 1000).coerceAtLeast(1)
     showCleanStreamNotice("Skipped ${seconds}s: ${active.label}")
+}
+
+/**
+ * Load (or reload) the strong-language mutes when subtitle muting is on for
+ * this profile and the subtitle in use changes. Uses the selected add-on
+ * subtitle, otherwise an English one, otherwise an Arabic one.
+ */
+private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.nuvio.tv.core.cleanstream.CleanStreamConfig) {
+    if (!config.enabled || !config.subtitleMuteEnabled) {
+        if (cleanSubtitleSourceKey != null) {
+            cleanSubtitleSourceKey = null
+            cleanSubtitleMutes = emptyList()
+        }
+        return
+    }
+    val state = _uiState.value
+    val subtitle = state.selectedAddonSubtitle ?: pickMuteSubtitle(state.addonSubtitles) ?: return
+    val key = "${subtitle.url}|${config.customMuteWords}"
+    if (key == cleanSubtitleSourceKey) return
+    cleanSubtitleSourceKey = key
+    cleanSubtitleMutes = emptyList()
+    scope.launch {
+        val mutes = SubtitleProfanity.loadMutes(subtitle.url, subtitle.headers, config.customMuteWords)
+        if (cleanSubtitleSourceKey == key) cleanSubtitleMutes = mutes
+    }
+}
+
+private fun pickMuteSubtitle(subtitles: List<Subtitle>): Subtitle? {
+    fun matches(sub: Subtitle, codes: Set<String>) = sub.lang.trim().lowercase().let { lang ->
+        codes.any { lang == it || lang.startsWith("$it-") || lang.startsWith("$it ") }
+    }
+    return subtitles.firstOrNull { matches(it, setOf("en", "eng", "english")) }
+        ?: subtitles.firstOrNull { matches(it, setOf("ar", "ara", "arabic")) }
 }
 
 internal fun PlayerRuntimeController.releaseCleanStreamMute() {

@@ -61,6 +61,7 @@ fun CleanStreamSettingsContent(
     val context = LocalContext.current
     val config by remember { CleanStreamSettings.config(context) }.collectAsStateWithLifecycle()
     var showServerDialog by remember { mutableStateOf(false) }
+    var showWordsDialog by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SettingsDetailHeader(
@@ -98,6 +99,27 @@ fun CleanStreamSettingsContent(
                             value = config.serverUrl.removePrefix("https://").removePrefix("http://"),
                             onClick = { showServerDialog = true },
                             enabled = config.enabled,
+                            modifier = Modifier
+                        )
+                    }
+                    item(key = "cleanstream_subtitle_mute") {
+                        SettingsToggleRow(
+                            title = "Mute bad language using subtitles (this profile)",
+                            subtitle = "Mutes the sound while subtitle lines with strong English or Arabic swear words are spoken. Uses subtitles from your subtitle add-ons",
+                            checked = config.subtitleMuteEnabled,
+                            onToggle = { CleanStreamSettings.setSubtitleMuteEnabled(!config.subtitleMuteEnabled) },
+                            enabled = config.enabled,
+                            modifier = Modifier
+                        )
+                    }
+                    item(key = "cleanstream_subtitle_words") {
+                        val count = config.customMuteWords.split(',', '،').count { it.isNotBlank() }
+                        SettingsActionRow(
+                            title = "Extra words to mute (this profile)",
+                            subtitle = "Your own words, separated by commas",
+                            value = if (count == 0) "None" else "$count word${if (count == 1) "" else "s"}",
+                            onClick = { showWordsDialog = true },
+                            enabled = config.enabled && config.subtitleMuteEnabled,
                             modifier = Modifier
                         )
                     }
@@ -156,18 +178,43 @@ fun CleanStreamSettingsContent(
     }
 
     if (showServerDialog) {
-        CleanStreamServerDialog(
+        CleanStreamTextDialog(
+            title = "CleanStream server",
+            subtitle = "For example https://cleanstream.example.com",
             currentValue = config.serverUrl,
-            onSave = { CleanStreamSettings.setServerUrl(it); showServerDialog = false },
+            keyboardType = KeyboardType.Uri,
+            resetLabel = "Use default",
+            onSave = { value ->
+                val url = value.trim().let { if (it.startsWith("http://") || it.startsWith("https://")) it else "https://$it" }
+                CleanStreamSettings.setServerUrl(url)
+                showServerDialog = false
+            },
             onReset = { CleanStreamSettings.setServerUrl(""); showServerDialog = false },
             onDismiss = { showServerDialog = false }
+        )
+    }
+
+    if (showWordsDialog) {
+        CleanStreamTextDialog(
+            title = "Extra words to mute",
+            subtitle = "Separate words with commas. Each word is matched as a whole word, in any letter case",
+            currentValue = config.customMuteWords,
+            keyboardType = KeyboardType.Text,
+            resetLabel = "Clear",
+            onSave = { value -> CleanStreamSettings.setCustomMuteWords(value); showWordsDialog = false },
+            onReset = { CleanStreamSettings.setCustomMuteWords(""); showWordsDialog = false },
+            onDismiss = { showWordsDialog = false }
         )
     }
 }
 
 @Composable
-private fun CleanStreamServerDialog(
+private fun CleanStreamTextDialog(
+    title: String,
+    subtitle: String,
     currentValue: String,
+    keyboardType: KeyboardType,
+    resetLabel: String,
     onSave: (String) -> Unit,
     onReset: () -> Unit,
     onDismiss: () -> Unit
@@ -180,8 +227,8 @@ private fun CleanStreamServerDialog(
 
     NuvioDialog(
         onDismiss = onDismiss,
-        title = "CleanStream server",
-        subtitle = "For example https://cleanstream.example.com",
+        title = title,
+        subtitle = subtitle,
         width = 700.dp
     ) {
         Card(
@@ -213,7 +260,7 @@ private fun CleanStreamServerDialog(
                                 event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN
                         },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = NuvioTheme.colors.TextPrimary),
                     cursorBrush = SolidColor(
@@ -239,13 +286,10 @@ private fun CleanStreamServerDialog(
                     containerColor = NuvioTheme.colors.BackgroundElevated,
                     contentColor = NuvioTheme.colors.TextPrimary
                 )
-            ) { Text("Use default") }
+            ) { Text(resetLabel) }
             Spacer(modifier = Modifier.width(NuvioTheme.spacing.sm))
             Button(
-                onClick = {
-                    val url = value.trim().let { if (it.startsWith("http://") || it.startsWith("https://")) it else "https://$it" }
-                    onSave(url)
-                },
+                onClick = { onSave(value) },
                 colors = ButtonDefaults.colors(
                     containerColor = NuvioTheme.colors.BackgroundCard,
                     contentColor = NuvioTheme.colors.TextPrimary

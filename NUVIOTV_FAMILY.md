@@ -13,6 +13,10 @@ It is not made or supported by the Nuvio team.
   Each happens once; if you remove them later they are not added back.
 * **♥ button in the player.** Press it when a kissing or sexual scene starts and again when
   it ends. The scene is shared five seconds later (press ♥ again to cancel).
+* **Mute bad language using subtitles (per profile).** When turned on for a profile, the app
+  scans the subtitle in use (the selected one, otherwise an English or Arabic one from your
+  subtitle add-ons) and mutes the lines with strong English or Arabic swear words, plus any
+  extra words that profile adds. Subtitles inside the video file are not read yet.
 * **Unconfirmed scenes are never skipped silently.** Scenes marked by other viewers that no
   second viewer has confirmed yet appear as a **"Skip … (unconfirmed)"** button. Pressing it
   skips the scene and confirms it for everyone.
