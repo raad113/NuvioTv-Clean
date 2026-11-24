@@ -1522,8 +1522,7 @@ private fun ModernCarouselCard(
                     com.nuvio.tv.ui.components.CleanStreamPosterBadges(
                         item = preview,
                         modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(start = 6.dp, bottom = 6.dp)
+                            .align(Alignment.BottomCenter)
                             .zIndex(2f)
                     )
                 }

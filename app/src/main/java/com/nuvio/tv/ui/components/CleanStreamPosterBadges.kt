@@ -2,11 +2,9 @@ package com.nuvio.tv.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
@@ -27,16 +25,17 @@ import com.nuvio.tv.core.cleanstream.CleanStreamSettings
 import com.nuvio.tv.domain.model.ContentType
 import com.nuvio.tv.domain.model.MetaPreview
 
-private val CleanShieldColor = Color(0xFF78ECC8) // the mint of the Nuvio Clean logo
-private val CleanShieldBackground = Color(0xD9101820)
-private val ReleaseTagColor = Color(0xE6101820)
+// Same look as the pale "#17 Today" tabs that catalog posters carry at the top
+private val TabBackground = Color(0xF2D4F1EC)
+private val TabText = Color(0xFF16353A)
+private val ShieldColor = Color(0xFF0F8A6C)
 
 /**
- * NuvioTv-Clean: small tags in the bottom corner of any poster: a mint
- * shield when the title has confirmed skips, and for movies that are not out
- * digitally yet, when they will be ("DIGITAL 12 DEC" or "IN CINEMAS").
- * Posters from the CleanStream add-on already have these drawn in, so they
- * are left alone.
+ * NuvioTv-Clean: a small tab on the bottom edge of any poster, in the style of
+ * the "#17 Today" tabs at the top. It shows a shield when the title has
+ * confirmed skips, and for movies the digital release ("Digital · Mar 2024",
+ * "Digital 12 Dec", "In Cinemas"). Posters from the CleanStream add-on already
+ * have these drawn in, so they are left alone.
  */
 @Composable
 fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
@@ -45,21 +44,30 @@ fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
     val serverHost = config.serverUrl.substringAfter("://").substringBefore('/')
     if (serverHost.isNotBlank() && item.poster?.contains(serverHost) == true) return
 
-    val imdbId = badgeKeyFor(item) ?: return
-    LaunchedEffect(imdbId) { CleanStreamBadges.request(imdbId) }
+    val key = badgeKeyFor(item) ?: return
+    LaunchedEffect(key) { CleanStreamBadges.request(key) }
 
     val badges by CleanStreamBadges.badges.collectAsState()
-    val badge = badges[imdbId] ?: return
+    val badge = badges[key] ?: return
     val release = if (item.type == ContentType.MOVIE) CleanStreamBadges.releaseText(badge) else null
-    if (!badge.clean && release == null) return
+    val text = release ?: if (badge.clean) "Clean" else return
 
     Row(
-        modifier = modifier,
+        modifier = modifier
+            .background(TabBackground, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (badge.clean) CleanShield()
-        if (release != null) Tag(release, ReleaseTagColor)
+        if (badge.clean) {
+            Icon(
+                imageVector = Icons.Filled.Shield,
+                contentDescription = "Clean version available",
+                tint = ShieldColor,
+                modifier = Modifier.size(12.dp),
+            )
+        }
+        Text(text = text, color = TabText, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
@@ -75,34 +83,4 @@ internal fun badgeKeyFor(item: MetaPreview): String? {
     val tmdb = Regex("^tmdb:(\\d+)").find(item.id)?.groupValues?.get(1) ?: return null
     val kind = if (item.type == ContentType.MOVIE) "movie" else "tv"
     return "tmdb:$kind:$tmdb"
-}
-
-/** Small mint shield on a dark circle: "this title has skips, it can be watched clean". */
-@Composable
-private fun CleanShield() {
-    Box(
-        modifier = Modifier.size(22.dp).background(CleanShieldBackground, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Shield,
-            contentDescription = "Clean version available",
-            tint = CleanShieldColor,
-            modifier = Modifier.size(14.dp),
-        )
-    }
-}
-
-@Composable
-private fun Tag(text: String, background: Color) {
-    Text(
-        text = text,
-        color = Color.White,
-        fontSize = 9.sp,
-        fontWeight = FontWeight.Bold,
-        maxLines = 1,
-        modifier = Modifier
-            .background(background, RoundedCornerShape(4.dp))
-            .padding(horizontal = 5.dp, vertical = 2.dp),
-    )
 }

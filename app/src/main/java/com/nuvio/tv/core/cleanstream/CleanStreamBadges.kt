@@ -101,18 +101,26 @@ object CleanStreamBadges {
     }
 
     /**
-     * Short text for the release tag, only for movies not out digitally yet:
-     * "DIGITAL 12 DEC", "IN CINEMAS", or null (already digital, or unknown).
+     * Short text for the release tab: "Digital · Mar 2024" (released),
+     * "Released" (released, date unknown), "Digital 12 Dec" (coming),
+     * "In Cinemas", or null when nothing is known.
      */
     fun releaseText(badge: Badge, today: java.time.LocalDate = java.time.LocalDate.now()): String? =
         when (badge.digitalStatus) {
-            "cinema" -> "IN CINEMAS"
+            "digital" -> badge.digitalDate?.let { raw ->
+                runCatching {
+                    val date = java.time.LocalDate.parse(raw)
+                    val month = date.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
+                    "Digital · $month ${date.year}"
+                }.getOrNull()
+            } ?: "Released"
+            "cinema" -> "In Cinemas"
             "upcoming" -> badge.digitalDate?.let { raw ->
                 runCatching {
                     val date = java.time.LocalDate.parse(raw)
-                    val month = date.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH).uppercase()
-                    if (date.year == today.year) "DIGITAL ${date.dayOfMonth} $month"
-                    else "DIGITAL ${date.dayOfMonth} $month ${date.year}"
+                    val month = date.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
+                    if (date.year == today.year) "Digital ${date.dayOfMonth} $month"
+                    else "Digital ${date.dayOfMonth} $month ${date.year}"
                 }.getOrNull()
             }
             else -> null
