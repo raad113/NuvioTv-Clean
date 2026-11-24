@@ -14,7 +14,7 @@ import java.net.URL
 import java.net.URLEncoder
 
 /**
- * NuvioTv-Family: family-friendly scene skipping powered by a CleanStream server.
+ * NuvioTv-Clean: family-friendly scene skipping powered by a CleanStream server.
  *
  * The player asks [CleanStreamClient] for the skip list of the title being
  * watched, then jumps over flagged scenes (or mutes them, for language) while
@@ -274,7 +274,7 @@ object CleanStreamClient {
             .put("severity", severity)
             .put("channel", "both")
             .put("comment", comment)
-            .put("contributor", "nuviotv-family")
+            .put("contributor", "nuviotv-clean")
             .toString()
         val body = request("POST", "${serverUrl.trimEnd('/')}/api/contribute/$id", payload) ?: return@withContext null
         runCatching { JSONObject(body).optString("status", "pending") }.getOrDefault("pending")
@@ -288,7 +288,7 @@ object CleanStreamClient {
             connection.connectTimeout = TIMEOUT_MS
             connection.readTimeout = TIMEOUT_MS
             connection.setRequestProperty("Accept", "application/json")
-            connection.setRequestProperty("User-Agent", "NuvioTv-Family")
+            connection.setRequestProperty("User-Agent", "NuvioTv-Clean")
             if (jsonBody != null) {
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")

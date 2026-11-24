@@ -260,7 +260,7 @@ class PlayerViewModel @Inject constructor(
         postPlayRecommendationController.returnToPlayer()
     }
 
-    /** NuvioTv-Family: the ♥ button marks the start, then the end, of a scene to share. */
+    /** NuvioTv-Clean: the ♥ button marks the start, then the end, of a scene to share. */
     fun onCleanStreamMark() = controller.toggleCleanStreamMark()
 
     fun scheduleHideControls() {

@@ -574,7 +574,7 @@ class PlayerRuntimeController(
     internal var skipIntroFetchedKey: String? = null
     internal val autoSkippedIntervalKeys: MutableSet<String> = mutableSetOf()
 
-    // NuvioTv-Family: CleanStream scene skipping (see PlayerRuntimeControllerCleanStream.kt)
+    // NuvioTv-Clean: CleanStream scene skipping (see PlayerRuntimeControllerCleanStream.kt)
     internal var cleanSkips: List<com.nuvio.tv.core.cleanstream.CleanSkip> = emptyList()
     internal var cleanSkipsKey: String? = null
     internal var cleanMutedKey: String? = null

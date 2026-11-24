@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">NuvioTv-Family</string>
+    <string name="app_name">NuvioTv-Clean</string>
     <string name="type_movie">Film</string>
     <string name="type_series">Serija</string>
     <string name="type_unknown">Nepoznato</string>

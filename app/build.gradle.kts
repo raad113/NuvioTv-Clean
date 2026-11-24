@@ -133,7 +133,7 @@ android {
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
-        applicationId = "com.nuviotvfamily.tv" // NuvioTv-Family: installs next to the official Nuvio
+        applicationId = "com.nuviotvclean.tv" // NuvioTv-Clean: installs next to the official Nuvio
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 24
         targetSdk = 36
@@ -183,7 +183,7 @@ android {
 
         // In-app updater (GitHub Releases)
         buildConfigField("String", "GITHUB_OWNER", "\"raad113\"")
-        buildConfigField("String", "GITHUB_REPO", "\"nuviotv-reshaped\"") // NuvioTv-Family releases are published here
+        buildConfigField("String", "GITHUB_REPO", "\"NuvioTv-Clean\"") // NuvioTv-Clean releases are published here
     }
 
     flavorDimensions += "distribution"
@@ -191,7 +191,7 @@ android {
         create("full") {
             dimension = "distribution"
             buildConfigField("boolean", "FEATURE_PLUGINS_ENABLED", "true")
-            buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "false") // NuvioTv-Family
+            buildConfigField("boolean", "FEATURE_IN_APP_UPDATES_ENABLED", "false") // NuvioTv-Clean
             buildConfigField("boolean", "FEATURE_IN_APP_TRAILERS_ENABLED", "true")
             buildConfigField("boolean", "FEATURE_EXTERNAL_TRAILERS_ENABLED", "true")
             buildConfigField("boolean", "FEATURE_EXTERNAL_PLAYBACK_KEEP_ALIVE_ENABLED", "true")
@@ -371,7 +371,7 @@ android {
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         val isPlaystore = variant.productFlavors.any { it.second == "playstore" }
-        variant.applicationId.set(if (isPlaystore) "com.nuvio.appdebug" else "com.nuviotvfamily.debug")
+        variant.applicationId.set(if (isPlaystore) "com.nuvio.appdebug" else "com.nuviotvclean.debug")
     }
     // Only the full flavor ships the in-app updater.
     onVariants(selector().withFlavor("distribution" to "full")) { variant ->

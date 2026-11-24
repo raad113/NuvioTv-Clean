@@ -14,7 +14,7 @@ import java.util.regex.Pattern
 import java.util.zip.GZIPInputStream
 
 /**
- * NuvioTv-Family: finds strong language in a subtitle file so the player can
+ * NuvioTv-Clean: finds strong language in a subtitle file so the player can
  * mute it. Works on SRT and WebVTT files from subtitle add-ons, with a
  * built-in English and Arabic word list plus the viewer's own words.
  */
@@ -109,7 +109,7 @@ object SubtitleProfanity {
             connection.connectTimeout = TIMEOUT_MS
             connection.readTimeout = TIMEOUT_MS
             connection.instanceFollowRedirects = true
-            connection.setRequestProperty("User-Agent", "NuvioTv-Family")
+            connection.setRequestProperty("User-Agent", "NuvioTv-Clean")
             headers?.forEach { (k, v) -> connection.setRequestProperty(k, v) }
             if (connection.responseCode !in 200..299) return null
             val bytes = connection.inputStream.use { input ->

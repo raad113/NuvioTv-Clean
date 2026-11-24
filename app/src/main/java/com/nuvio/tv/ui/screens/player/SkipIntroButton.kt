@@ -244,7 +244,7 @@ fun SkipIntroButton(
 @Composable
 private fun getSkipLabel(type: String?, targetsPostCredits: Boolean): String =
     if (type != null && type.startsWith(CLEANSTREAM_PROMPT_TYPE_PREFIX)) {
-        // NuvioTv-Family: a scene marked by another viewer, not yet confirmed
+        // NuvioTv-Clean: a scene marked by another viewer, not yet confirmed
         "Skip ${type.removePrefix(CLEANSTREAM_PROMPT_TYPE_PREFIX)} (unconfirmed)"
     } else getStandardSkipLabel(type, targetsPostCredits)
 

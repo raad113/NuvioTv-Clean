@@ -283,7 +283,7 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         mpv.setPropertyDouble("speed", speed.toDouble())
     }
 
-    /** NuvioTv-Family: mute or unmute during scenes flagged for language. */
+    /** NuvioTv-Clean: mute or unmute during scenes flagged for language. */
     fun setCleanStreamMuted(muted: Boolean) {
         if (!initialized) return
         runCatching { mpv.setPropertyBoolean("mute", muted) }

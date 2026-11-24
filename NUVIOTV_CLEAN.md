@@ -1,6 +1,6 @@
-# NuvioTv-Family
+# NuvioTv-Clean
 
-NuvioTv-Family is an unofficial, modified version of [NuvioTV Reshaped](https://github.com/DavidVamaiotu/NuvioTV-Reshaped)
+NuvioTv-Clean is an unofficial, modified version of [NuvioTV Reshaped](https://github.com/DavidVamaiotu/NuvioTV-Reshaped)
 (itself a community fork of [NuvioTV](https://github.com/NuvioMedia/NuvioTV))
 that skips unwanted scenes automatically, using skip data from a
 [CleanStream](https://github.com/raad113/stremio-cleanstream) server.
@@ -25,7 +25,7 @@ It is not made or supported by the Nuvio team.
   CleanStream server are jumped over. Scenes flagged as "audio only" (for example
   strong language) are muted instead. A short notice ("Skipped 12s: Violence")
   appears each time.
-* **Settings → Integrations → NuvioTv-Family (CleanStream).** Turn skipping on or off,
+* **Settings → Integrations → NuvioTv-Clean (CleanStream).** Turn skipping on or off,
   choose the CleanStream server, and set each filter (nudity, sexual content and
   kissing, violence, language, drugs, frightening scenes) to Off, Low, Medium or High.
   High skips every flagged scene; Low skips only the strongest.
@@ -35,11 +35,11 @@ It is not made or supported by the Nuvio team.
 
 ## Other changes from NuvioTV
 
-* App name "NuvioTv-Family" and app ID `com.nuviotvfamily.tv`, so it installs next to the official app and Reshaped.
+* App name "NuvioTv-Clean" and app ID `com.nuviotvclean.tv`, so it installs next to the official app and Reshaped.
 * The in-app updater only looks at this repository's releases, never official Nuvio's or Reshaped's.
 * The CleanStream add-on's warning subtitle tracks are hidden, because the app skips by itself.
-* `.github/workflows/build-nuviotv-family.yml` builds the APKs on every push to the
-  NuvioTv-Family branch and publishes them as a release. Reshaped's own workflows are unchanged.
+* `.github/workflows/build-nuviotv-clean.yml` builds the APKs on every push to the
+  NuvioTv-Clean branch and publishes them as a release. Reshaped's own workflows are unchanged.
 * Nuvio account sync, Trakt and other services need keys that are not included.
   Add your own keys (for example `TMDB_API_KEY`, `TRAKT_CLIENT_ID`, `TRAKT_CLIENT_SECRET`)
   as one `KEY=value` per line in the repository secret `NUVIOTV_FAMILY_LOCAL_PROPERTIES`.
@@ -47,13 +47,13 @@ It is not made or supported by the Nuvio team.
 
 ## Signing (so updates install over the old version)
 
-Add two repository secrets: `NUVIOTV_FAMILY_KEYSTORE_BASE64` (the keystore file, base64 encoded,
+Add two repository secrets (their names keep the earlier "FAMILY" spelling): `NUVIOTV_FAMILY_KEYSTORE_BASE64` (the keystore file, base64 encoded,
 key alias `nuviotvfamily`) and `NUVIOTV_FAMILY_KEYSTORE_PASSWORD`. Keep a copy of the keystore:
-without it, future builds cannot update an installed NuvioTv-Family.
+without it, future builds cannot update an installed NuvioTv-Clean.
 
 ## Installing on Android TV
 
-1. Open the repository's **Releases** page and copy the link to the latest `NuvioTv-Family-*.apk`.
+1. Open the repository's **Releases** page and copy the link to the latest `NuvioTv-Clean-*.apk`.
 2. On the TV, install the **Downloader** app, enter the link and install the APK
    (allow "install unknown apps" for Downloader when asked).
 

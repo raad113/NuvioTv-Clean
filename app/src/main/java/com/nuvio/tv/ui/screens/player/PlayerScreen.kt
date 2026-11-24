@@ -3035,7 +3035,7 @@ private fun PlayerControlsOverlay(
                         onFocused = onResetHideTimer
                     )
 
-                    // NuvioTv-Family: press at the start and the end of a kissing or
+                    // NuvioTv-Clean: press at the start and the end of a kissing or
                     // sexual scene to share it (pink while a scene is being timed)
                     ControlButton(
                         icon = Icons.Default.Favorite,

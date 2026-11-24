@@ -17,7 +17,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * NuvioTv-Family built-in setup.
+ * NuvioTv-Clean built-in setup.
  *
  * On first start (once per device, and once per profile for the collection) it:
  *  - adds the CleanStream add-on, so the CleanStream rows with tagged posters
@@ -97,7 +97,7 @@ class CleanStreamFirstRun @Inject constructor(
         return try {
             connection.connectTimeout = 10_000
             connection.readTimeout = 15_000
-            connection.setRequestProperty("User-Agent", "NuvioTv-Family")
+            connection.setRequestProperty("User-Agent", "NuvioTv-Clean")
             if (connection.responseCode != 200) null
             else connection.inputStream.bufferedReader().use { it.readText() }
         } catch (e: Exception) {

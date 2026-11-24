@@ -1184,7 +1184,7 @@ private fun IntegrationSettingsContent(
                             }
                             item(key = "integration_hub_cleanstream") {
                                 SettingsActionRow(
-                                    title = "NuvioTv-Family (CleanStream)",
+                                    title = "NuvioTv-Clean (CleanStream)",
                                     subtitle = "Automatic skipping of unwanted scenes",
                                     leadingIcon = Icons.Default.FastForward,
                                     onClick = { onSelectSection(IntegrationSettingsSection.CleanStream) },

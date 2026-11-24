@@ -1,4 +1,4 @@
-# NuvioTv-Family: builds the APKs on every push to the NuvioTv-Family branch
+# NuvioTv-Clean: builds the APKs on every push to the NuvioTv-Clean branch
 # (or on demand from the Actions tab) and publishes them as a GitHub release,
 # ready to install on Android TV with the Downloader app.
 #
@@ -10,7 +10,7 @@
 # Without the keystore secrets each build gets a one-off key, so the previous
 # build must be uninstalled before installing the next one.
 
-name: Build NuvioTv-Family
+name: Build NuvioTv-Clean
 
 on:
   push:
@@ -21,7 +21,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: build-nuviotv-family
+  group: build-nuviotv-clean
   cancel-in-progress: true
 
 jobs:
@@ -56,17 +56,17 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.NUVIOTV_FAMILY_KEYSTORE_PASSWORD }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
-            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nuviotv-family.jks"
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nuviotv-clean.jks"
             PASS="$KEYSTORE_PASSWORD"
           else
             echo "::warning::No NUVIOTV_FAMILY_KEYSTORE_BASE64 secret: using a one-off signing key. Uninstall the previous build before installing this one."
             PASS=android
-            keytool -genkeypair -keystore "$RUNNER_TEMP/nuviotv-family.jks" -storepass "$PASS" \
-              -alias nuviotvfamily -keypass "$PASS" -dname "CN=NuvioTv-Family" \
+            keytool -genkeypair -keystore "$RUNNER_TEMP/nuviotv-clean.jks" -storepass "$PASS" \
+              -alias nuviotvfamily -keypass "$PASS" -dname "CN=NuvioTv-Clean" \
               -keyalg RSA -keysize 2048 -validity 10000
           fi
           {
-            echo "NUVIO_RELEASE_STORE_FILE=$RUNNER_TEMP/nuviotv-family.jks"
+            echo "NUVIO_RELEASE_STORE_FILE=$RUNNER_TEMP/nuviotv-clean.jks"
             echo "NUVIO_RELEASE_KEY_ALIAS=nuviotvfamily"
             echo "NUVIO_RELEASE_KEY_PASSWORD=$PASS"
             echo "NUVIO_RELEASE_STORE_PASSWORD=$PASS"
@@ -88,26 +88,26 @@ jobs:
           for pair in universal:any arm64-v8a:arm64 armeabi-v7a:arm32; do
             abi="${pair%%:*}"; alias="${pair##*:}"
             if [ -f "$SRC/app-full-${abi}-release.apk" ]; then
-              cp "$SRC/app-full-${abi}-release.apk" "dist/NuvioTv-Family-${{ github.run_number }}-${alias}.apk"
+              cp "$SRC/app-full-${abi}-release.apk" "dist/NuvioTv-Clean-${{ github.run_number }}-${alias}.apk"
             fi
           done
           # Builds without ABI splits produce a single APK
           if [ -z "$(ls dist)" ]; then
-            cp "$(find "$SRC" -name '*.apk' | head -n 1)" "dist/NuvioTv-Family-${{ github.run_number }}-any.apk"
+            cp "$(find "$SRC" -name '*.apk' | head -n 1)" "dist/NuvioTv-Clean-${{ github.run_number }}-any.apk"
           fi
           ls -l dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: NuvioTv-Family-${{ github.run_number }}
+          name: NuvioTv-Clean-${{ github.run_number }}
           path: dist/*.apk
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "nuviotv-family-${{ github.run_number }}" dist/*.apk \
+          gh release create "nuviotv-clean-${{ github.run_number }}" dist/*.apk \
             --target "$GITHUB_SHA" \
-            --title "NuvioTv-Family build ${{ github.run_number }}" \
-            --notes "Automatic build of commit ${GITHUB_SHA::7}. On Android TV, install NuvioTv-Family-*-any.apk with the Downloader app (or the arm64/arm32 file for your TV)." \
+            --title "NuvioTv-Clean build ${{ github.run_number }}" \
+            --notes "Automatic build of commit ${GITHUB_SHA::7}. On Android TV, install NuvioTv-Clean-*-any.apk with the Downloader app (or the arm64/arm32 file for your TV)." \
             --latest

@@ -50,7 +50,7 @@ import com.nuvio.tv.ui.components.NuvioDialog
 import com.nuvio.tv.ui.theme.NuvioTheme
 
 /**
- * NuvioTv-Family settings: turn automatic skipping on or off, choose the
+ * NuvioTv-Clean settings: turn automatic skipping on or off, choose the
  * CleanStream server, and set how strict each filter is.
  * Changes apply to the next title you play.
  */
@@ -65,7 +65,7 @@ fun CleanStreamSettingsContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SettingsDetailHeader(
-            title = "NuvioTv-Family",
+            title = "NuvioTv-Clean",
             subtitle = "Automatically skip or mute unwanted scenes using CleanStream community data"
         )
 

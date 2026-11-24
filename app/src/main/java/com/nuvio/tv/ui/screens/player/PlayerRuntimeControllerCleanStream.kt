@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /*
- * NuvioTv-Family: automatic skipping of flagged scenes.
+ * NuvioTv-Clean: automatic skipping of flagged scenes.
  *
  * fetchCleanStreamSkips() runs whenever the player loads skip data for a title.
  * applyCleanStreamSkips() runs on every progress tick (about twice a second)
@@ -75,7 +75,7 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
             cleanPending = result.pending
             recomputeMergedSkipIntervals()
             if (skips.isNotEmpty()) {
-                showCleanStreamNotice("NuvioTv-Family: ${skips.size} scene${if (skips.size == 1) "" else "s"} will be skipped")
+                showCleanStreamNotice("NuvioTv-Clean: ${skips.size} scene${if (skips.size == 1) "" else "s"} will be skipped")
             }
         }
     }
