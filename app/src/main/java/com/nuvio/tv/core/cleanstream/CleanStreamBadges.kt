@@ -28,6 +28,8 @@ object CleanStreamBadges {
     data class Badge(
         /** The title has confirmed skips. */
         val clean: Boolean,
+        /** The title has unconfirmed skips (marked by one viewer, or imported). */
+        val hasUnconfirmed: Boolean = false,
         /** "digital", "upcoming", "cinema" or "unknown"; null for shows. */
         val digitalStatus: String?,
         /** yyyy-MM-dd of the digital release when known. */
@@ -87,6 +89,7 @@ object CleanStreamBadges {
                 val digital = o.optJSONObject("digital")
                 id to Badge(
                     clean = o.optBoolean("clean", false),
+                    hasUnconfirmed = o.optInt("pending", 0) > 0,
                     digitalStatus = digital?.optString("status")?.takeIf { it.isNotBlank() },
                     digitalDate = digital?.optString("date")?.takeIf { it.isNotBlank() && it != "null" },
                 )

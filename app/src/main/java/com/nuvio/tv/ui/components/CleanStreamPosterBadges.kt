@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.outlined.Shield as OutlinedShield
 import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import com.nuvio.tv.core.cleanstream.CleanStreamBadges
@@ -29,11 +30,12 @@ import com.nuvio.tv.domain.model.MetaPreview
 private val TabBackground = Color(0xF2D4F1EC)
 private val TabText = Color(0xFF16353A)
 private val ShieldColor = Color(0xFF0F8A6C)
+private val UnconfirmedShieldColor = Color(0x9916353A)
 
 /**
  * NuvioTv-Clean: a small tab on the bottom edge of any poster, in the style of
- * the "#17 Today" tabs at the top. It shows a shield when the title has
- * confirmed skips, and for movies the digital release ("Digital · Mar 2024",
+ * the "#17 Today" tabs at the top. It shows a solid shield when the title has
+ * confirmed skips, a faded outlined one when it only has unconfirmed skips, and for movies the digital release ("Digital · Mar 2024",
  * "Digital 12 Dec", "In Cinemas"). Posters from the CleanStream add-on already
  * have these drawn in, so they are left alone.
  */
@@ -50,7 +52,11 @@ fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
     val badges by CleanStreamBadges.badges.collectAsState()
     val badge = badges[key] ?: return
     val release = if (item.type == ContentType.MOVIE) CleanStreamBadges.releaseText(badge) else null
-    val text = release ?: if (badge.clean) "Clean" else return
+    val text = release ?: when {
+        badge.clean -> "Clean"
+        badge.hasUnconfirmed -> "Unconfirmed"
+        else -> return
+    }
 
     Row(
         modifier = modifier
@@ -64,6 +70,13 @@ fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
                 imageVector = Icons.Filled.Shield,
                 contentDescription = "Clean version available",
                 tint = ShieldColor,
+                modifier = Modifier.size(12.dp),
+            )
+        } else if (badge.hasUnconfirmed) {
+            Icon(
+                imageVector = Icons.Outlined.OutlinedShield,
+                contentDescription = "Unconfirmed skips available",
+                tint = UnconfirmedShieldColor,
                 modifier = Modifier.size(12.dp),
             )
         }
