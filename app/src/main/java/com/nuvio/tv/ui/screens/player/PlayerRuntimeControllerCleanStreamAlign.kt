@@ -98,27 +98,24 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
         val duration = currentPlaybackDurationMs().takeIf { it > 0 }
         val local = cleanStreamLocalTimeline()
 
-        // One mapping per copy the skips were marked on
+        // The fingerprint of each copy the skips were marked on
         val refIds = (raw + pendingRaw).mapNotNull { it.refId }.distinct()
-        val mappers = withContext(AutomaticSubtitleSync.autoSyncDispatcher) {
-            refIds.associateWith { refId ->
-                val ref = CleanStreamClient.fetchRef(serverUrl, refId) ?: return@associateWith null
-                (local?.let { CleanStreamAligner.mapperFor(it, ref) })
-                    ?: CleanStreamAligner.frameRateMapper(duration, ref.durationMs)
-            }
-        }
+        val refs = refIds.mapNotNull { id -> CleanStreamClient.fetchRef(serverUrl, id)?.let { id to it } }.toMap()
 
-        fun line(skip: CleanSkip): CleanSkip {
-            val map = skip.refId?.let { mappers[it] }
-                ?: CleanStreamAligner.frameRateMapper(duration, skip.durationMs)
-                ?: return skip
-            val start = map(skip.startMs)
-            val end = map(skip.endMs).coerceAtLeast(start + 500)
+        // Each skip is placed by matching the lines around its own scene
+        suspend fun line(skip: CleanSkip): CleanSkip {
+            val ref = skip.refId?.let { refs[it] }
+            val transform = withContext(AutomaticSubtitleSync.autoSyncDispatcher) {
+                (if (local != null && ref != null) CleanStreamAligner.transformAt(local, ref, skip.startMs) else null)
+                    ?: CleanStreamAligner.frameRateTransform(duration, ref?.durationMs ?: skip.durationMs)
+            } ?: return skip
+            val start = transform.map(skip.startMs)
+            val end = transform.map(skip.endMs).coerceAtLeast(start + 500)
             return skip.copy(startMs = start, endMs = end)
         }
 
-        val aligned = raw.map(::line)
-        val alignedPending = pendingRaw.map(::line)
+        val aligned = raw.map { line(it) }
+        val alignedPending = pendingRaw.map { line(it) }
         // Ignore the result if the title changed meanwhile
         if (cleanSkipsRaw !== raw) return@launch
         cleanSkips = aligned
