@@ -210,6 +210,9 @@ data class PlayerUiState(
     val showStreamSourceIndicator: Boolean = false,
     /** NuvioTv-Clean: true while the viewer is timing a scene with the ♥ button. */
     val cleanStreamMarking: Boolean = false,
+    // NuvioTv-Clean: the "Skip timing for this film" panel
+    val cleanTimingPanelVisible: Boolean = false,
+    val cleanTimingOffsetMs: Long = 0L,
     val streamSourceIndicatorText: String = "",
     val showPlayerEngineSwitchInfo: Boolean = false,
     val playerEngineSwitchInfoText: String = "",

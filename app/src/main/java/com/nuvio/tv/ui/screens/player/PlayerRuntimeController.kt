@@ -596,6 +596,10 @@ class PlayerRuntimeController(
     internal val cleanDisabledIds: MutableSet<String> = mutableSetOf()
     internal var cleanUndo: CleanStreamUndo? = null
     internal var cleanUndoJob: kotlinx.coroutines.Job? = null
+    // Timing corrections for skips without a fingerprint, and the one that matched this copy
+    internal var cleanCorrections: List<com.nuvio.tv.core.cleanstream.TimingCorrection> = emptyList()
+    internal var cleanMatchedCorrectionMs: Long? = null
+    internal var cleanTimingAtOpen: Long? = null
     internal var lastActiveSkipType: String? = null
     internal var autoSubtitleSelected: Boolean = false
     internal var isUserExplicitSubtitleSelection: Boolean = false

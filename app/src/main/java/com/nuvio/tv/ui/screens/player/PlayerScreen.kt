@@ -1647,6 +1647,7 @@ fun PlayerScreen(
                 onShowSubtitleDialog = { viewModel.onEvent(PlayerEvent.OnShowSubtitleOverlay) },
                 onShowSpeedDialog = { viewModel.onEvent(PlayerEvent.OnShowSpeedDialog) },
                 onCleanStreamMark = { viewModel.onCleanStreamMark() },
+                onCleanStreamTiming = { viewModel.onCleanStreamTimingOpen() },
                 cleanStreamMarking = uiState.cleanStreamMarking,
                 onToggleAspectRatio = {
                     Log.d("PlayerScreen", "onToggleAspectRatio called - dispatching event")
@@ -2170,6 +2171,17 @@ fun PlayerScreen(
         }
 
         com.nuvio.tv.ui.reshaped.livetv.LiveTvPlayerOverlay(liveTvPlayer, uiState) // Nuvio RS hook: Live TV
+
+        // NuvioTv-Clean: "Skip timing for this film" (long press on ♥)
+        if (uiState.cleanTimingPanelVisible) {
+            CleanStreamTimingDialog(
+                offsetMs = uiState.cleanTimingOffsetMs,
+                onAdjust = { viewModel.onCleanStreamTimingAdjust(it) },
+                onReset = { viewModel.onCleanStreamTimingReset() },
+                onDismiss = { viewModel.onCleanStreamTimingClose() },
+                brightness = uiState.playerControlsBrightness
+            )
+        }
 
         if (uiState.showSpeedDialog) {
             SpeedSelectionDialog(
@@ -2805,6 +2817,7 @@ private fun PlayerControlsOverlay(
     onShowSubtitleDialog: () -> Unit,
     onShowSpeedDialog: () -> Unit,
     onCleanStreamMark: () -> Unit = {},
+    onCleanStreamTiming: () -> Unit = {},
     cleanStreamMarking: Boolean = false,
     onToggleAspectRatio: () -> Unit,
     onSwitchPlayerEngine: () -> Unit,
@@ -3044,7 +3057,9 @@ private fun PlayerControlsOverlay(
                         upFocusRequester = progressUpTarget,
                         onDownKey = onHideControls,
                         onFocused = onResetHideTimer,
-                        contentColor = if (cleanStreamMarking) Color(0xFFFF4D8D) else Color.White
+                        contentColor = if (cleanStreamMarking) Color(0xFFFF4D8D) else Color.White,
+                        // Long press: move this film's skips earlier or later
+                        onLongClick = onCleanStreamTiming
                     )
 
                     if (showNextEpisodeButton) {
@@ -3360,12 +3375,14 @@ private fun ControlButton(
     enabled: Boolean = true,
     onDownKey: (() -> Unit)? = null,
     onFocused: (() -> Unit)? = null,
-    contentColor: Color = Color.White
+    contentColor: Color = Color.White,
+    onLongClick: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
     IconButton(
         onClick = onClick,
+        onLongClick = onLongClick,
         enabled = enabled,
         modifier = Modifier
             .size(NuvioTheme.spacing.xxxl)

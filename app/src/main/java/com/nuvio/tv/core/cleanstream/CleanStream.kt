@@ -111,6 +111,13 @@ data class TimingRef(
     /** (startMs, endMs) of each subtitle line, in time order. */
     val cues: List<Pair<Long, Long>>,
 ) {
+    /** The same id the server gives this fingerprint (first 16 hex digits of a SHA-256). */
+    fun id(): String {
+        val text = cues.joinToString(",", "[", "]") { (s, e) -> "[$s,$e]" }
+        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }.take(16)
+    }
+
     fun toJson(): JSONObject = JSONObject().apply {
         put("kind", kind)
         durationMs?.let { put("durationMs", it) }
@@ -150,7 +157,12 @@ data class TimingRef(
 data class CleanStreamSkips(
     val skips: List<CleanSkip> = emptyList(),
     val pending: List<CleanSkip> = emptyList(),
+    /** Timing corrections viewers made for skips without a fingerprint, per copy. */
+    val corrections: List<TimingCorrection> = emptyList(),
 )
+
+/** On the copy with fingerprint [refId], skips without a fingerprint belong [offsetMs] later. */
+data class TimingCorrection(val refId: String, val offsetMs: Long)
 
 /**
  * Settings stored in plain SharedPreferences and exposed as a StateFlow.
@@ -244,6 +256,19 @@ object CleanStreamSettings {
         )
     }
 
+    private const val KEY_TITLE_OFFSET_PREFIX = "title_offset_"
+
+    /** This device's timing adjustment for one title (null when none was set). */
+    fun titleOffset(contentKey: String): Long? =
+        prefs?.takeIf { it.contains(KEY_TITLE_OFFSET_PREFIX + contentKey) }?.getLong(KEY_TITLE_OFFSET_PREFIX + contentKey, 0L)
+
+    fun setTitleOffset(contentKey: String, offsetMs: Long?) {
+        prefs?.edit()?.apply {
+            if (offsetMs == null) remove(KEY_TITLE_OFFSET_PREFIX + contentKey)
+            else putLong(KEY_TITLE_OFFSET_PREFIX + contentKey, offsetMs)
+        }?.apply()
+    }
+
     /** This profile: true shows a "Skip" button for each scene instead of skipping by itself. */
     fun setSkipWithButton(withButton: Boolean) {
         prefs?.edit()?.putBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, withButton)?.apply()
@@ -300,6 +325,13 @@ object CleanStreamClient {
             CleanStreamSkips(
                 skips = parseList(json.optJSONArray("skips")),
                 pending = parseList(json.optJSONArray("pending")),
+                corrections = json.optJSONArray("corrections")?.let { a ->
+                    (0 until a.length()).mapNotNull { i ->
+                        val o = a.optJSONObject(i) ?: return@mapNotNull null
+                        val refId = o.optString("refId").takeIf { it.matches(Regex("^[0-9a-f]{16}$")) } ?: return@mapNotNull null
+                        TimingCorrection(refId, o.optLong("offsetMs", 0))
+                    }
+                }.orEmpty(),
             )
         } catch (e: Exception) {
             Log.w(TAG, "Could not load skips for $contentId: ${e.message}")
@@ -328,6 +360,17 @@ object CleanStreamClient {
         if (up && ref != null) payload.put("ref", ref.toJson())
         request("POST", "${serverUrl.trimEnd('/')}/api/vote/$id/$seg", payload.toString()) != null
     }
+
+    /**
+     * Share a timing correction: on the copy with fingerprint [ref], this
+     * title's skips belong [offsetMs] later (negative: earlier).
+     */
+    suspend fun sendTiming(serverUrl: String, contentId: String, offsetMs: Long, ref: TimingRef): Boolean =
+        withContext(Dispatchers.IO) {
+            val id = URLEncoder.encode(contentId, "UTF-8")
+            val payload = JSONObject().put("offsetMs", offsetMs).put("ref", ref.toJson()).toString()
+            request("POST", "${serverUrl.trimEnd('/')}/api/timing/$id", payload) != null
+        }
 
     private val refCache = java.util.concurrent.ConcurrentHashMap<String, TimingRef>()
 

@@ -8,6 +8,7 @@ import com.nuvio.tv.core.cleanstream.SubtitleProfanity
 import com.nuvio.tv.core.cleanstream.TimingRef
 import com.nuvio.tv.ui.screens.player.autosync.AutomaticSubtitleSync
 import com.nuvio.tv.ui.screens.player.autosync.EmbeddedSubtitleTimelineLoader
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -87,7 +88,8 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
     if (cleanSkipsRaw.isEmpty() && cleanPendingRaw.isEmpty()) return
     val state = _uiState.value
     val hasDuration = currentPlaybackDurationMs() > 0
-    val key = "$cleanSkipsKey|$currentStreamUrl|${state.selectedAddonSubtitle?.url}|${state.subtitleDelayMs}|$hasDuration"
+    val manualOffset = cleanContentKey?.let { CleanStreamSettings.titleOffset(it) }
+    val key = "$cleanSkipsKey|$currentStreamUrl|${state.selectedAddonSubtitle?.url}|${state.subtitleDelayMs}|$hasDuration|$manualOffset"
     if (key == cleanAlignKey) return
     cleanAlignKey = key
     cleanAlignJob?.cancel()
@@ -102,16 +104,52 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
         val refIds = (raw + pendingRaw).mapNotNull { it.refId }.distinct()
         val refs = refIds.mapNotNull { id -> CleanStreamClient.fetchRef(serverUrl, id)?.let { id to it } }.toMap()
 
+        // Corrections viewers shared for skips without a fingerprint, with their copies' fingerprints
+        val correctionRefs = cleanCorrections.mapNotNull { c ->
+            CleanStreamClient.fetchRef(serverUrl, c.refId)?.let { c to it }
+        }
+        var matchedCorrection: Long? = null
+
+        /**
+         * Where a skip without a fingerprint goes on this copy, using a correction
+         * shared by someone with the same copy (or one that lines up with it).
+         */
+        fun corrected(skip: CleanSkip): CleanSkip? {
+            if (local == null) return null
+            for ((correction, copy) in correctionRefs) {
+                val shiftedStart = skip.startMs + correction.offsetMs
+                val transform = if (copy.cues == local.cues) CleanStreamAligner.Transform(1.0, 0L)
+                else CleanStreamAligner.transformAt(local, copy, shiftedStart) ?: continue
+                matchedCorrection = correction.offsetMs
+                val start = transform.map(shiftedStart)
+                val end = transform.map(skip.endMs + correction.offsetMs).coerceAtLeast(start + 500)
+                return skip.copy(startMs = start, endMs = end)
+            }
+            return null
+        }
+
         // Each skip is placed by matching the lines around its own scene
         suspend fun line(skip: CleanSkip): CleanSkip {
             val ref = skip.refId?.let { refs[it] }
-            val transform = withContext(AutomaticSubtitleSync.autoSyncDispatcher) {
-                (if (local != null && ref != null) CleanStreamAligner.transformAt(local, ref, skip.startMs) else null)
+            val placed = withContext(AutomaticSubtitleSync.autoSyncDispatcher) {
+                val transform = (if (local != null && ref != null) CleanStreamAligner.transformAt(local, ref, skip.startMs) else null)
                     ?: CleanStreamAligner.frameRateTransform(duration, ref?.durationMs ?: skip.durationMs)
-            } ?: return skip
-            val start = transform.map(skip.startMs)
-            val end = transform.map(skip.endMs).coerceAtLeast(start + 500)
-            return skip.copy(startMs = start, endMs = end)
+                when {
+                    transform != null -> skip.copy(
+                        startMs = transform.map(skip.startMs),
+                        endMs = transform.map(skip.endMs).coerceAtLeast(transform.map(skip.startMs) + 500),
+                    )
+                    // This TV's own adjustment wins over corrections shared by others
+                    skip.refId == null && manualOffset == null -> corrected(skip) ?: skip
+                    else -> skip
+                }
+            }
+            // This TV's own adjustment for the film moves everything
+            val manual = manualOffset ?: return placed
+            return placed.copy(
+                startMs = (placed.startMs + manual).coerceAtLeast(0L),
+                endMs = (placed.endMs + manual).coerceAtLeast(500L),
+            )
         }
 
         val aligned = raw.map { line(it) }
@@ -120,6 +158,7 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
         if (cleanSkipsRaw !== raw) return@launch
         cleanSkips = aligned
         cleanPending = alignedPending
+        cleanMatchedCorrectionMs = matchedCorrection
         recomputeMergedSkipIntervals()
         val moved = aligned.zip(raw).maxOfOrNull { (a, r) -> abs(a.startMs - r.startMs) } ?: 0L
         if (moved >= ALIGN_NOTICE_MIN_SHIFT_MS) {
@@ -197,3 +236,59 @@ internal fun PlayerRuntimeController.onCleanStreamUndoPressed(interval: com.nuvi
 /** True when the viewer turned this skip off for this playback. */
 internal fun PlayerRuntimeController.isCleanSkipDisabled(skip: CleanSkip): Boolean =
     skip.ids.ifEmpty { listOf(skip.key) }.any { it in cleanDisabledIds }
+
+/* ------------------------------------------------------------------ */
+/* "Skip timing for this film" (long press on ♥)                       */
+/* ------------------------------------------------------------------ */
+
+/** Largest adjustment offered in the panel. */
+private const val CLEAN_TIMING_MAX_MS = 5 * 60_000L
+
+/** Open the panel, starting from this TV's adjustment or a shared one that matched this copy. */
+internal fun PlayerRuntimeController.openCleanStreamTiming() {
+    val contentKey = cleanContentKey
+    if (contentKey == null || !CleanStreamSettings.current.enabled) {
+        showCleanStreamNotice("Skip timing is not available for this video")
+        return
+    }
+    val start = CleanStreamSettings.titleOffset(contentKey) ?: cleanMatchedCorrectionMs ?: 0L
+    cleanTimingAtOpen = start
+    _uiState.update { it.copy(cleanTimingPanelVisible = true, cleanTimingOffsetMs = start) }
+}
+
+/** Move this film's skips by [deltaMs] (negative: earlier); applies straight away. */
+internal fun PlayerRuntimeController.adjustCleanStreamTiming(deltaMs: Long) {
+    val contentKey = cleanContentKey ?: return
+    val value = (_uiState.value.cleanTimingOffsetMs + deltaMs).coerceIn(-CLEAN_TIMING_MAX_MS, CLEAN_TIMING_MAX_MS)
+    CleanStreamSettings.setTitleOffset(contentKey, value)
+    _uiState.update { it.copy(cleanTimingOffsetMs = value) }
+    maybeAlignCleanStreamSkips()
+}
+
+/** Forget this TV's adjustment for the film. */
+internal fun PlayerRuntimeController.resetCleanStreamTiming() {
+    val contentKey = cleanContentKey ?: return
+    CleanStreamSettings.setTitleOffset(contentKey, null)
+    _uiState.update { it.copy(cleanTimingOffsetMs = cleanMatchedCorrectionMs ?: 0L) }
+    maybeAlignCleanStreamSkips()
+}
+
+/**
+ * Close the panel. A changed adjustment is shared with this copy's
+ * fingerprint, so others with the same version of the film get it too.
+ */
+internal fun PlayerRuntimeController.closeCleanStreamTiming() {
+    _uiState.update { it.copy(cleanTimingPanelVisible = false) }
+    val contentKey = cleanContentKey ?: return
+    val value = CleanStreamSettings.titleOffset(contentKey)
+    if (value == null || value == cleanTimingAtOpen) return
+    val serverUrl = CleanStreamSettings.current.serverUrl
+    scope.launch {
+        val ref = withTimeoutOrNull(15_000L) { cleanStreamLocalTimeline() }
+        val shared = ref != null && CleanStreamClient.sendTiming(serverUrl, contentKey, value, ref)
+        showCleanStreamNotice(
+            if (shared) "Saved. Others with this version of the film get this timing too."
+            else "Saved for this TV. Turn on subtitles to share the timing with others."
+        )
+    }
+}

@@ -90,6 +90,8 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
             cleanPendingRaw = result.pending
             cleanSkips = skips
             cleanPending = result.pending
+            cleanCorrections = result.corrections
+            cleanMatchedCorrectionMs = null
             cleanAlignKey = null
             recomputeMergedSkipIntervals()
             if (skips.isNotEmpty()) {
