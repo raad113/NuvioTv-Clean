@@ -2,6 +2,11 @@ package com.nuvio.tv.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -27,33 +32,42 @@ import com.nuvio.tv.domain.model.ContentType
 import com.nuvio.tv.domain.model.MetaPreview
 
 // Same look as the pale "#17 Today" tabs that catalog posters carry at the top
-private val TabBackground = Color(0xF2D4F1EC)
-private val TabText = Color(0xFF16353A)
+private val TabBackground = Color(0xFFD3F0F6)
+private val TabText = Color(0xFF17485A)
 private val ShieldBackground = Color(0xCC101820)
 private val ShieldConfirmed = Color(0xFF78ECC8) // the mint of the Nuvio Clean logo
 private val ShieldUnconfirmed = Color(0xB3FFFFFF)
 
+/** How far the tab reaches up onto the poster; the rest hangs below it. */
+private val TabOverlap = 8.dp
+
 /**
- * NuvioTv-Clean: a small tab on the bottom edge of a movie poster with its
- * digital release ("Digital · Mar 2024", "Digital 12 Dec", "In Cinemas"), in
- * the style of the "#17 Today" tabs at the top. Posters from the CleanStream
- * add-on already have this drawn in, so they are left alone.
+ * NuvioTv-Clean: a small tab sitting on a poster's bottom border, like the
+ * "#17 Today" tabs on the top border, for titles that are not out yet:
+ * "Digital in 5 days", "Out tomorrow", "Premieres in 3 days", "S2E5 today",
+ * "In cinemas". Place it right after the poster card in the card's column.
+ * It takes no space itself, so rows keep their height, and only its upper
+ * half lies on the picture, clear of the title art.
  */
 @Composable
-fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
+fun CleanStreamPosterTab(item: MetaPreview, modifier: Modifier = Modifier) {
     val badge = rememberCleanBadge(item) ?: return
-    if (item.type != ContentType.MOVIE) return
-    val text = CleanStreamBadges.releaseText(badge) ?: return
-    Text(
-        text = text,
-        color = TabText,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.SemiBold,
-        maxLines = 1,
-        modifier = modifier
-            .background(TabBackground, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-    )
+    val text = CleanStreamBadges.upcomingText(badge) ?: return
+    Box(modifier = modifier.fillMaxWidth().height(0.dp).zIndex(3f)) {
+        Text(
+            text = text,
+            color = TabText,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .wrapContentHeight(align = Alignment.Top, unbounded = true)
+                .offset(y = -TabOverlap)
+                .background(TabBackground, RoundedCornerShape(6.dp))
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+        )
+    }
 }
 
 /**
@@ -86,7 +100,7 @@ private fun rememberCleanBadge(item: MetaPreview): CleanStreamBadges.Badge? {
     val serverHost = config.serverUrl.substringAfter("://").substringBefore('/')
     if (serverHost.isNotBlank() && item.poster?.contains(serverHost) == true) return null
     val key = badgeKeyFor(item) ?: return null
-    LaunchedEffect(key) { CleanStreamBadges.request(key) }
+    LaunchedEffect(key) { CleanStreamBadges.request(key, isShow = item.type != ContentType.MOVIE) }
     val badges by CleanStreamBadges.badges.collectAsState()
     return badges[key]
 }

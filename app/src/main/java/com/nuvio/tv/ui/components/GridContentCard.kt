@@ -355,14 +355,6 @@ fun GridContentCard(
                     )
                 }
 
-                // NuvioTv-Clean: "✓ CLEAN" and digital release tags
-                CleanStreamPosterBadges(
-                    item = item,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .zIndex(2f)
-                )
-
                 // NuvioTv-Clean: small shield in the corner for titles with skips
                 CleanStreamPosterShield(
                     item = item,
@@ -373,6 +365,9 @@ fun GridContentCard(
                 )
             }
         }
+
+        // NuvioTv-Clean: upcoming release tab on the poster's bottom border
+        CleanStreamPosterTab(item = item, modifier = Modifier.width(posterCardStyle.width))
 
         if (showLabel && (!showLogo || item.logo.isNullOrBlank())) {
             FocusMarqueeText(

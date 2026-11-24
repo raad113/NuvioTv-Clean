@@ -34,6 +34,15 @@ object CleanStreamBadges {
         val digitalStatus: String?,
         /** yyyy-MM-dd of the digital release when known. */
         val digitalDate: String?,
+        /**
+         * What the title is still waiting for: "release", "digital", "cinema"
+         * (movies), "premiere", "episode" (shows); null when it is already out.
+         */
+        val upcomingKind: String? = null,
+        /** yyyy-MM-dd of that event (null for "cinema"). */
+        val upcomingDate: String? = null,
+        /** Episode code such as "S2E5" for "episode". */
+        val upcomingLabel: String? = null,
     )
 
     private const val TAG = "CleanStreamBadges"
@@ -46,6 +55,8 @@ object CleanStreamBadges {
     val badges: StateFlow<Map<String, Badge>> = _badges.asStateFlow()
 
     private val requested = ConcurrentHashMap.newKeySet<String>()
+    /** IMDb ids known to be shows, so the server looks up episodes instead of releases. */
+    private val showIds = ConcurrentHashMap.newKeySet<String>()
     private val queue = ConcurrentHashMap.newKeySet<String>()
     private var batchJob: Job? = null
 
@@ -53,8 +64,9 @@ object CleanStreamBadges {
      * Ask for the tags of a title: [imdbId] is tt1234567, or tmdb:movie:123 /
      * tmdb:tv:123 for catalogs that use TMDB numbers. Each is fetched once per session.
      */
-    fun request(imdbId: String) {
+    fun request(imdbId: String, isShow: Boolean = false) {
         if (!Regex("^(tt\\d{1,10}|tmdb:(movie|tv):\\d{1,10})$").matches(imdbId)) return
+        if (isShow && imdbId.startsWith("tt")) showIds.add(imdbId)
         if (!CleanStreamSettings.current.enabled) return
         if (!requested.add(imdbId)) return
         queue.add(imdbId)
@@ -73,7 +85,10 @@ object CleanStreamBadges {
 
     private fun fetch(ids: List<String>) {
         val server = CleanStreamSettings.current.serverUrl.trimEnd('/')
-        val connection = URL("$server/api/badges?ids=${ids.joinToString(",")}").openConnection() as HttpURLConnection
+        val shows = ids.filter { it in showIds }
+        val url = "$server/api/badges?ids=${ids.joinToString(",")}" +
+            if (shows.isNotEmpty()) "&shows=${shows.joinToString(",")}" else ""
+        val connection = URL(url).openConnection() as HttpURLConnection
         try {
             connection.connectTimeout = TIMEOUT_MS
             connection.readTimeout = TIMEOUT_MS
@@ -87,11 +102,15 @@ object CleanStreamBadges {
             val found = ids.mapNotNull { id ->
                 val o = json.optJSONObject(id) ?: return@mapNotNull null
                 val digital = o.optJSONObject("digital")
+                val upcoming = o.optJSONObject("upcoming")
                 id to Badge(
                     clean = o.optBoolean("clean", false),
                     hasUnconfirmed = o.optInt("pending", 0) > 0,
                     digitalStatus = digital?.optString("status")?.takeIf { it.isNotBlank() },
                     digitalDate = digital?.optString("date")?.takeIf { it.isNotBlank() && it != "null" },
+                    upcomingKind = upcoming?.optString("kind")?.takeIf { it.isNotBlank() && it != "null" },
+                    upcomingDate = upcoming?.optString("date")?.takeIf { it.isNotBlank() && it != "null" },
+                    upcomingLabel = upcoming?.optString("label")?.takeIf { it.isNotBlank() && it != "null" },
                 )
             }
             _badges.update { it + found }
@@ -104,28 +123,31 @@ object CleanStreamBadges {
     }
 
     /**
-     * Short text for the release tab: "Digital · Mar 2024" (released),
-     * "Released" (released, date unknown), "Digital 12 Dec" (coming),
-     * "In Cinemas", or null when nothing is known.
+     * Short text for the bottom tab, only for titles not out yet:
+     * "Digital in 5 days", "Out tomorrow", "Premieres on 12 Mar",
+     * "S2E5 today", "In cinemas"; null when the title is already out.
      */
-    fun releaseText(badge: Badge, today: java.time.LocalDate = java.time.LocalDate.now()): String? =
-        when (badge.digitalStatus) {
-            "digital" -> badge.digitalDate?.let { raw ->
-                runCatching {
-                    val date = java.time.LocalDate.parse(raw)
-                    val month = date.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
-                    "Digital · $month ${date.year}"
-                }.getOrNull()
-            } ?: "Released"
-            "cinema" -> "In Cinemas"
-            "upcoming" -> badge.digitalDate?.let { raw ->
-                runCatching {
-                    val date = java.time.LocalDate.parse(raw)
-                    val month = date.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
-                    if (date.year == today.year) "Digital ${date.dayOfMonth} $month"
-                    else "Digital ${date.dayOfMonth} $month ${date.year}"
-                }.getOrNull()
+    fun upcomingText(badge: Badge, today: java.time.LocalDate = java.time.LocalDate.now()): String? {
+        val kind = badge.upcomingKind ?: return null
+        if (kind == "cinema") return "In cinemas"
+        val date = badge.upcomingDate?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() } ?: return null
+        val days = java.time.temporal.ChronoUnit.DAYS.between(today, date)
+        if (days < 0) return null // already out; the answer was older than today
+        val whenText = when {
+            days == 0L -> "today"
+            days == 1L -> "tomorrow"
+            days <= 60L -> "in $days days"
+            else -> {
+                val month = date.month.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
+                if (date.year == today.year) "on ${date.dayOfMonth} $month" else "on ${date.dayOfMonth} $month ${date.year}"
             }
+        }
+        return when (kind) {
+            "digital" -> "Digital $whenText"
+            "release" -> "Out $whenText"
+            "premiere" -> "Premieres $whenText"
+            "episode" -> "${badge.upcomingLabel ?: "New episode"} $whenText"
             else -> null
         }
+    }
 }

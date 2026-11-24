@@ -1517,14 +1517,8 @@ private fun ModernCarouselCard(
                     )
                 }
 
-                // NuvioTv-Clean: "✓ CLEAN" and digital release tags
+                // NuvioTv-Clean: small shield in the corner for titles with skips
                 item.metaPreview?.let { preview ->
-                    com.nuvio.tv.ui.components.CleanStreamPosterBadges(
-                        item = preview,
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .zIndex(2f)
-                    )
                     com.nuvio.tv.ui.components.CleanStreamPosterShield(
                         item = preview,
                         modifier = Modifier
@@ -1535,6 +1529,9 @@ private fun ModernCarouselCard(
                 }
             }
         }
+
+        // NuvioTv-Clean: upcoming release tab on the poster's bottom border
+        item.metaPreview?.let { preview -> com.nuvio.tv.ui.components.CleanStreamPosterTab(item = preview) }
 
         if (showLabels && !isBackdropExpanded && item.title.isNotBlank()) {
             Column(

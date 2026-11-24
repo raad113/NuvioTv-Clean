@@ -623,14 +623,6 @@ fun ContentCard(
                     )
                 }
 
-                // NuvioTv-Clean: "✓ CLEAN" and digital release tags
-                CleanStreamPosterBadges(
-                    item = item,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .zIndex(2f)
-                )
-
                 // NuvioTv-Clean: small shield in the corner for titles with skips
                 CleanStreamPosterShield(
                     item = item,
@@ -641,6 +633,9 @@ fun ContentCard(
                 )
             }
         }
+
+        // NuvioTv-Clean: upcoming release tab on the poster's bottom border
+        CleanStreamPosterTab(item = item)
 
         // When backdrop expand is enabled, both the labels state and the
         // expanded state share a single Column with a fixed minimum height
