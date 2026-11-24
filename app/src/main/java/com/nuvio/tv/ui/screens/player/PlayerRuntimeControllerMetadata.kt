@@ -481,6 +481,7 @@ internal fun PlayerRuntimeController.updateActiveSkipInterval(positionMs: Long) 
         val targetsPostCredits = active.followingPostCreditsScene(skipIntervals, currentPlaybackDurationMs()) != null
         if (currentActive != active || targetsPostCredits != _uiState.value.activeSkipTargetsPostCredits) {
             val keepDismissed = currentActive != null &&
+                !active.type.startsWith("cleanstream") && // NuvioTv-Clean: each scene is offered afresh
                 segmentCategory(currentActive.type) == segmentCategory(active.type)
             lastActiveSkipType = active.type
             _uiState.update { it.copy(

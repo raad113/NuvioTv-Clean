@@ -33,6 +33,9 @@ private const val CLEAN_NOTICE_MS = 3_000L
 /** Extra quiet time around a subtitle line that contains strong language. */
 private const val SUBTITLE_MUTE_PAD_MS = 250L
 
+/** The "Skip" button appears this long before a flagged scene starts. */
+private const val CLEAN_BUTTON_LEAD_MS = 10_000L
+
 /** Time to cancel a ♥ mark before it is shared. */
 private const val CLEAN_SHARE_DELAY_MS = 5_000L
 
@@ -255,7 +258,8 @@ internal fun PlayerRuntimeController.cleanStreamPendingIntervals(): List<SkipInt
     val buttons = if (config.skipWithButton) {
         cleanSkips.filter { it.channel != "audio" && !isCleanSkipDisabled(it) }.map { skip ->
             SkipInterval(
-                startTime = (skip.startMs + config.offsetMs - config.marginMs).coerceAtLeast(0L) / 1000.0,
+                // Shown a little before the scene, in case this copy's timing is slightly off
+                startTime = (skip.startMs + config.offsetMs - config.marginMs - CLEAN_BUTTON_LEAD_MS).coerceAtLeast(0L) / 1000.0,
                 endTime = (skip.endMs + config.offsetMs + config.marginMs) / 1000.0,
                 type = CLEANSTREAM_BUTTON_TYPE_PREFIX + skip.label,
                 provider = CLEANSTREAM_BUTTON_PROVIDER_PREFIX + skip.key,

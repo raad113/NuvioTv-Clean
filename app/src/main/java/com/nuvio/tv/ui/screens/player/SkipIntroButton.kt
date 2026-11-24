@@ -91,7 +91,11 @@ fun SkipIntroButton(
 
     // Reset auto-hide and progress when interval category changes (opening/ending/recap),
     // but not when the same category switches provider (e.g. op[aniskip] -> intro[chapters]).
-    val intervalCategory = interval?.type?.let { segmentCategory(it) }
+    // NuvioTv-Clean: every flagged scene is its own interval, so a new scene shows the button again
+    val isCleanStreamInterval = interval?.type?.startsWith("cleanstream") == true
+    val intervalCategory = interval?.let {
+        if (isCleanStreamInterval) "${it.provider}@${it.startTime}" else segmentCategory(it.type)
+    }
     LaunchedEffect(intervalCategory) {
         autoHidden = false
         manuallyDismissed = false
@@ -111,7 +115,8 @@ fun SkipIntroButton(
 
     // Auto-hide after 10 seconds — pause countdown while controls are visible
     LaunchedEffect(shouldShow, autoHidden, controlsVisible) {
-        if (shouldShow && !autoHidden && !controlsVisible) {
+        // NuvioTv-Clean: its buttons stay for the whole scene instead of hiding after 10 seconds
+        if (shouldShow && !autoHidden && !controlsVisible && !isCleanStreamInterval) {
             progress.animateTo(1f, animationSpec = tween(
                 durationMillis = skipIntroAutoHideRemainingMs(progress.value),
                 easing = LinearEasing
