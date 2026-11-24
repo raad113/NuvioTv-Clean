@@ -4,7 +4,7 @@
 
   <p>A family-friendly Nuvio for Android TV that skips unwanted scenes and mutes bad language by itself.</p>
 
-  [Download](https://github.com/raad113/NuvioTv-Clean/releases/latest/download/NuvioTv-Clean.apk) · [All releases](https://github.com/raad113/NuvioTv-Clean/releases) · [CleanStream server](https://github.com/raad113/stremio-cleanstream)
+  [Download](https://github.com/raad113/NuvioTv-Clean/releases/latest/download/NuvioTv-Clean.apk) · [All releases](https://github.com/raad113/NuvioTv-Clean/releases)
 
 </div>
 
