@@ -58,7 +58,10 @@ class SubtitleRepositoryImpl @Inject constructor(
         }
 
         // Filter addons that support subtitles resource
+        // NuvioTv-Family skips flagged scenes itself, so the CleanStream add-on's
+        // "warning" subtitle tracks would only clutter the subtitle list.
         val subtitleAddons = addons.filter { addon ->
+            addon.id != com.nuvio.tv.core.cleanstream.CleanStreamFirstRun.ADDON_ID &&
             addon.resources.any { resource ->
                 isSubtitleResource(resource.name) && supportsType(addon, resource, requestType, id)
             }

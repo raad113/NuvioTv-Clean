@@ -67,6 +67,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ClosedCaption
@@ -1645,6 +1646,8 @@ fun PlayerScreen(
                 onShowAudioDialog = { viewModel.onEvent(PlayerEvent.OnShowAudioOverlay) },
                 onShowSubtitleDialog = { viewModel.onEvent(PlayerEvent.OnShowSubtitleOverlay) },
                 onShowSpeedDialog = { viewModel.onEvent(PlayerEvent.OnShowSpeedDialog) },
+                onCleanStreamMark = { viewModel.onCleanStreamMark() },
+                cleanStreamMarking = uiState.cleanStreamMarking,
                 onToggleAspectRatio = {
                     Log.d("PlayerScreen", "onToggleAspectRatio called - dispatching event")
                     viewModel.onEvent(PlayerEvent.OnToggleAspectRatio)
@@ -2801,6 +2804,8 @@ private fun PlayerControlsOverlay(
     onShowAudioDialog: () -> Unit,
     onShowSubtitleDialog: () -> Unit,
     onShowSpeedDialog: () -> Unit,
+    onCleanStreamMark: () -> Unit = {},
+    cleanStreamMarking: Boolean = false,
     onToggleAspectRatio: () -> Unit,
     onSwitchPlayerEngine: () -> Unit,
     onReportPlaybackIssue: () -> Unit,
@@ -3028,6 +3033,18 @@ private fun PlayerControlsOverlay(
                         upFocusRequester = progressUpTarget,
                         onDownKey = onHideControls,
                         onFocused = onResetHideTimer
+                    )
+
+                    // NuvioTv-Family: press at the start and the end of a kissing or
+                    // sexual scene to share it (pink while a scene is being timed)
+                    ControlButton(
+                        icon = Icons.Default.Favorite,
+                        contentDescription = if (cleanStreamMarking) "Mark the end of the scene" else "Mark a scene to skip",
+                        onClick = onCleanStreamMark,
+                        upFocusRequester = progressUpTarget,
+                        onDownKey = onHideControls,
+                        onFocused = onResetHideTimer,
+                        contentColor = if (cleanStreamMarking) Color(0xFFFF4D8D) else Color.White
                     )
 
                     if (showNextEpisodeButton) {

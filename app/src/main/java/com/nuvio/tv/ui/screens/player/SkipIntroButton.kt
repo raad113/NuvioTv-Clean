@@ -242,7 +242,14 @@ fun SkipIntroButton(
 }
 
 @Composable
-private fun getSkipLabel(type: String?, targetsPostCredits: Boolean): String = when (type?.trim()?.lowercase()) {
+private fun getSkipLabel(type: String?, targetsPostCredits: Boolean): String =
+    if (type != null && type.startsWith(CLEANSTREAM_PROMPT_TYPE_PREFIX)) {
+        // NuvioTv-Family: a scene marked by another viewer, not yet confirmed
+        "Skip ${type.removePrefix(CLEANSTREAM_PROMPT_TYPE_PREFIX)} (unconfirmed)"
+    } else getStandardSkipLabel(type, targetsPostCredits)
+
+@Composable
+private fun getStandardSkipLabel(type: String?, targetsPostCredits: Boolean): String = when (type?.trim()?.lowercase()) {
     "op", "opening", "mixed-op", "intro" -> stringResource(R.string.skip_intro)
     "ed", "ending", "mixed-ed", "outro", "credits" ->
         stringResource(if (targetsPostCredits) R.string.skip_to_post_credits else R.string.skip_ending)

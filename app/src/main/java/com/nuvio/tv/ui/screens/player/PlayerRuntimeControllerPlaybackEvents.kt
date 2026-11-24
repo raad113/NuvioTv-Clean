@@ -208,6 +208,7 @@ internal fun PlayerRuntimeController.skipActiveInterval(): Boolean {
 
 internal fun PlayerRuntimeController.skipInterval(interval: SkipInterval): Boolean {
     if (interval.type == "post-credits") return false
+    onCleanStreamPromptSkipped(interval) // NuvioTv-Family: confirms an unconfirmed scene
     val duration = currentPlaybackDurationMs().takeIf { it > 0 } ?: Long.MAX_VALUE
     val postCredits = interval.followingPostCreditsScene(skipIntervals, currentPlaybackDurationMs())
     val targetTime = postCredits?.startTime ?: interval.endTime
@@ -447,6 +448,7 @@ internal fun PlayerRuntimeController.startProgressUpdates() {
                     view.sampleThroughput(context, currentStreamUrl)
                     recomputeChapterSkipIntervalsIfNeeded()
                     updateActiveSkipInterval(pos)
+                    applyCleanStreamSkips(pos)
                     if (!_playbackTimeline.value.isLive) {
                         evaluatePostPlayOverlayVisibility(
                             positionMs = pos,
@@ -518,6 +520,8 @@ internal fun PlayerRuntimeController.startProgressUpdates() {
                 }
                 recomputeChapterSkipIntervalsIfNeeded()
                 updateActiveSkipInterval(pos)
+                applyCleanStreamSkips(pos)
+                applyCleanStreamSkips(pos)
                 if (!_playbackTimeline.value.isLive) {
                     evaluatePostPlayOverlayVisibility(
                         positionMs = pos,

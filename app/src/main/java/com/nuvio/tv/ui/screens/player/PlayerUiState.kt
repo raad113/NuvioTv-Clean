@@ -208,6 +208,8 @@ data class PlayerUiState(
     val streamAutoPlayPreferBingeGroupForNextEpisode: Boolean = false,
     // Stream source badge
     val showStreamSourceIndicator: Boolean = false,
+    /** NuvioTv-Family: true while the viewer is timing a scene with the ♥ button. */
+    val cleanStreamMarking: Boolean = false,
     val streamSourceIndicatorText: String = "",
     val showPlayerEngineSwitchInfo: Boolean = false,
     val playerEngineSwitchInfoText: String = "",

@@ -573,6 +573,16 @@ class PlayerRuntimeController(
     internal var playerSettingsInitialized: Boolean = false
     internal var skipIntroFetchedKey: String? = null
     internal val autoSkippedIntervalKeys: MutableSet<String> = mutableSetOf()
+
+    // NuvioTv-Family: CleanStream scene skipping (see PlayerRuntimeControllerCleanStream.kt)
+    internal var cleanSkips: List<com.nuvio.tv.core.cleanstream.CleanSkip> = emptyList()
+    internal var cleanSkipsKey: String? = null
+    internal var cleanMutedKey: String? = null
+    internal var cleanLastSeekAt: Long = 0L
+    internal var cleanPending: List<com.nuvio.tv.core.cleanstream.CleanSkip> = emptyList()
+    internal var cleanContentKey: String? = null
+    internal var cleanMarkStartMs: Long? = null
+    internal var cleanShareJob: kotlinx.coroutines.Job? = null
     internal var lastActiveSkipType: String? = null
     internal var autoSubtitleSelected: Boolean = false
     internal var isUserExplicitSubtitleSelection: Boolean = false

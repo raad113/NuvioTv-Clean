@@ -51,6 +51,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
     @Inject lateinit var imagePerformancePreferences: ImagePerformancePreferences
     @Inject lateinit var simklAnimeIdPreferenceHolder: SimklAnimeIdPreferenceHolder
     @Inject lateinit var serverUserStateProjection: ServerUserStateProjection
+    @Inject lateinit var cleanStreamFirstRun: com.nuvio.tv.core.cleanstream.CleanStreamFirstRun
 
     companion object {
         /**
@@ -98,6 +99,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         com.nuvio.tv.reshaped.sync.ReshapedSync.onAppStart(this) // Nuvio RS hook: sync through the viewer's Google account
         androidTvChannelSyncService.start()
         serverUserStateProjection.start()
+        cleanStreamFirstRun.start() // NuvioTv-Family: built-in CleanStream add-on and family collection
         // Load locale synchronously so it's available before Activity.attachBaseContext.
         // SharedPreferences reads are fast (cached in memory after first access).
         val tag = getSharedPreferences("app_locale", Context.MODE_PRIVATE)

@@ -495,6 +495,9 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
             autoSkipSegmentTypes = settings.autoSkipSegmentTypes
             playerSettingsInitialized = true
 
+            // NuvioTv-Family: load CleanStream skips even when intro skipping is off
+            fetchCleanStreamSkips(contentId, currentSeason, currentEpisode)
+
             // Fetch parental guide on first settings emission (after we know
             // whether the feature is enabled). Subsequent emissions skip this.
             if (settings.parentalGuideEnabled && _uiState.value.parentalWarnings.isEmpty()) {
@@ -630,6 +633,8 @@ private fun PlayerRuntimeController.loadCloudLibraryResumeProgress(): WatchProgr
 }
 
 internal fun PlayerRuntimeController.fetchSkipIntervals(id: String?, season: Int?, episode: Int?) {
+    // NuvioTv-Family: load family-friendly skips independently of the intro-skip setting
+    fetchCleanStreamSkips(id, season, episode)
     if (!skipIntroEnabled) return
     if (id.isNullOrBlank()) return
 
@@ -714,7 +719,10 @@ private fun PlayerRuntimeController.setApiSkipIntervals(api: List<SkipInterval>)
 /** Recompute the merged skipIntervals from chapters (priority) + API (gap-fill). */
 internal fun PlayerRuntimeController.recomputeMergedSkipIntervals() {
     val isMovie = contentType.equals("movie", ignoreCase = true)
-    val merged = mergeSkipIntervals(apiSkipIntervals, chapterSkipIntervals, isMovie = isMovie)
+    // NuvioTv-Family: other viewers' unconfirmed CleanStream marks are shown as a
+    // "Skip" button (never skipped automatically) through the same mechanism
+    val merged = mergeSkipIntervals(apiSkipIntervals, chapterSkipIntervals, isMovie = isMovie) +
+        cleanStreamPendingIntervals()
     if (merged == skipIntervals) return
     skipIntervals = merged
 }

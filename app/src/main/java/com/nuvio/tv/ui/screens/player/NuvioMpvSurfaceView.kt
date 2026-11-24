@@ -283,6 +283,13 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         mpv.setPropertyDouble("speed", speed.toDouble())
     }
 
+    /** NuvioTv-Family: mute or unmute during scenes flagged for language. */
+    fun setCleanStreamMuted(muted: Boolean) {
+        if (!initialized) return
+        runCatching { mpv.setPropertyBoolean("mute", muted) }
+            .onFailure { Log.w(TAG, "Failed to change mute on mpv: ${it.message}") }
+    }
+
     fun applyAudioAmplificationDb(db: Int) {
         if (!initialized) return
         val clampedDb = db.coerceIn(AUDIO_AMPLIFICATION_MIN_DB, AUDIO_AMPLIFICATION_MAX_DB)

@@ -109,7 +109,8 @@ private enum class IntegrationSettingsSection {
     Debrid,
     Tmdb,
     MdbList,
-    AnimeSkip
+    AnimeSkip,
+    CleanStream
 }
 
 internal enum class SettingsSectionDestination {
@@ -249,6 +250,7 @@ fun SettingsScreen(
     val integrationTmdbFocusRequester = remember { FocusRequester() }
     val integrationMdbListFocusRequester = remember { FocusRequester() }
     val integrationAnimeSkipFocusRequester = remember { FocusRequester() }
+    val integrationCleanStreamFocusRequester = remember { FocusRequester() }
     var integrationSection by remember { mutableStateOf(IntegrationSettingsSection.Hub) }
     var integrationHubReturnSection by remember { mutableStateOf(IntegrationSettingsSection.Hub) }
     var pendingContentFocusCategory by remember { mutableStateOf<SettingsCategory?>(null) }
@@ -658,6 +660,7 @@ fun SettingsScreen(
                                 integrationTmdbFocusRequester = integrationTmdbFocusRequester,
                                 integrationMdbListFocusRequester = integrationMdbListFocusRequester,
                                 integrationAnimeSkipFocusRequester = integrationAnimeSkipFocusRequester,
+                                integrationCleanStreamFocusRequester = integrationCleanStreamFocusRequester,
                                 onNavigateToManageProfiles = onNavigateToManageProfiles,
                                 onNavigateToAddons = onNavigateToAddons,
                                 onNavigateToPlugins = onNavigateToPlugins,
@@ -818,6 +821,7 @@ fun SettingsScreen(
                         integrationTmdbFocusRequester = integrationTmdbFocusRequester,
                         integrationMdbListFocusRequester = integrationMdbListFocusRequester,
                         integrationAnimeSkipFocusRequester = integrationAnimeSkipFocusRequester,
+                        integrationCleanStreamFocusRequester = integrationCleanStreamFocusRequester,
                         onNavigateToManageProfiles = onNavigateToManageProfiles,
                         onNavigateToAddons = onNavigateToAddons,
                         onNavigateToPlugins = onNavigateToPlugins,
@@ -848,6 +852,7 @@ private fun SettingsDetailPane(
     integrationTmdbFocusRequester: FocusRequester,
     integrationMdbListFocusRequester: FocusRequester,
     integrationAnimeSkipFocusRequester: FocusRequester,
+    integrationCleanStreamFocusRequester: FocusRequester,
     onNavigateToManageProfiles: () -> Unit,
     onNavigateToAddons: () -> Unit,
     onNavigateToPlugins: () -> Unit,
@@ -946,6 +951,7 @@ private fun SettingsDetailPane(
             tmdbFocusRequester = integrationTmdbFocusRequester,
             mdbListFocusRequester = integrationMdbListFocusRequester,
             animeSkipFocusRequester = integrationAnimeSkipFocusRequester,
+            cleanStreamFocusRequester = integrationCleanStreamFocusRequester,
             autoFocusEnabled = allowDetailAutofocus
         )
         SettingsCategory.ABOUT -> AboutSettingsContent(
@@ -1070,6 +1076,7 @@ private fun IntegrationSettingsContent(
     tmdbFocusRequester: FocusRequester,
     mdbListFocusRequester: FocusRequester,
     animeSkipFocusRequester: FocusRequester,
+    cleanStreamFocusRequester: FocusRequester,
     autoFocusEnabled: Boolean
 ) {
     BackHandler(enabled = selectedSection != IntegrationSettingsSection.Hub) {
@@ -1082,6 +1089,7 @@ private fun IntegrationSettingsContent(
         IntegrationSettingsSection.Tmdb -> tmdbFocusRequester
         IntegrationSettingsSection.MdbList -> mdbListFocusRequester
         IntegrationSettingsSection.AnimeSkip -> animeSkipFocusRequester
+        IntegrationSettingsSection.CleanStream -> cleanStreamFocusRequester
     }
     val hubEntryTargetSection = hubReturnSection.takeIf {
         it != IntegrationSettingsSection.Hub
@@ -1095,6 +1103,7 @@ private fun IntegrationSettingsContent(
             IntegrationSettingsSection.Tmdb -> tmdbFocusRequester
             IntegrationSettingsSection.MdbList -> mdbListFocusRequester
             IntegrationSettingsSection.AnimeSkip -> animeSkipFocusRequester
+            IntegrationSettingsSection.CleanStream -> cleanStreamFocusRequester
         }
         runCatching { requester.requestFocus() }
     }
@@ -1173,6 +1182,19 @@ private fun IntegrationSettingsContent(
                                     }
                                 )
                             }
+                            item(key = "integration_hub_cleanstream") {
+                                SettingsActionRow(
+                                    title = "NuvioTv-Family (CleanStream)",
+                                    subtitle = "Automatic skipping of unwanted scenes",
+                                    leadingIcon = Icons.Default.FastForward,
+                                    onClick = { onSelectSection(IntegrationSettingsSection.CleanStream) },
+                                    modifier = if (hubEntryTargetSection == IntegrationSettingsSection.CleanStream) {
+                                        Modifier.focusRequester(hubEntryFocusRequester)
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                            }
                         }
                         SettingsVerticalScrollIndicators(state = integrationHubState)
                     }
@@ -1201,6 +1223,12 @@ private fun IntegrationSettingsContent(
         IntegrationSettingsSection.AnimeSkip -> {
             AnimeSkipSettingsContent(
                 initialFocusRequester = animeSkipFocusRequester
+            )
+        }
+
+        IntegrationSettingsSection.CleanStream -> {
+            CleanStreamSettingsContent(
+                initialFocusRequester = cleanStreamFocusRequester
             )
         }
     }
