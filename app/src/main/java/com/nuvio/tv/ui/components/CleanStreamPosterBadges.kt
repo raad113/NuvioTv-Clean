@@ -18,18 +18,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Shield
+import androidx.tv.material3.Icon
 import androidx.tv.material3.Text
 import com.nuvio.tv.core.cleanstream.CleanStreamBadges
 import com.nuvio.tv.core.cleanstream.CleanStreamSettings
 import com.nuvio.tv.domain.model.ContentType
 import com.nuvio.tv.domain.model.MetaPreview
 
-private val CleanTagColor = Color(0xFF2BB673)
+private val CleanShieldColor = Color(0xFF78ECC8) // the mint of the Nuvio Clean logo
+private val CleanShieldBackground = Color(0xD9101820)
 private val ReleaseTagColor = Color(0xE6101820)
 
 /**
- * NuvioTv-Clean: small tags in the bottom corner of any poster: a green ✓
- * when the title has confirmed skips, and for movies that are not out
+ * NuvioTv-Clean: small tags in the bottom corner of any poster: a mint
+ * shield when the title has confirmed skips, and for movies that are not out
  * digitally yet, when they will be ("DIGITAL 12 DEC" or "IN CINEMAS").
  * Posters from the CleanStream add-on already have these drawn in, so they
  * are left alone.
@@ -54,7 +58,7 @@ fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (badge.clean) CleanCheck()
+        if (badge.clean) CleanShield()
         if (release != null) Tag(release, ReleaseTagColor)
     }
 }
@@ -73,14 +77,19 @@ internal fun badgeKeyFor(item: MetaPreview): String? {
     return "tmdb:$kind:$tmdb"
 }
 
-/** Small round green badge with a check mark. */
+/** Small mint shield on a dark circle: "this title has skips, it can be watched clean". */
 @Composable
-private fun CleanCheck() {
+private fun CleanShield() {
     Box(
-        modifier = Modifier.size(18.dp).background(CleanTagColor, CircleShape),
+        modifier = Modifier.size(22.dp).background(CleanShieldBackground, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = "✓", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Icon(
+            imageVector = Icons.Filled.Shield,
+            contentDescription = "Clean version available",
+            tint = CleanShieldColor,
+            modifier = Modifier.size(14.dp),
+        )
     }
 }
 
