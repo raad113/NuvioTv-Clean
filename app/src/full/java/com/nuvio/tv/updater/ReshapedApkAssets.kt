@@ -8,6 +8,9 @@ package com.nuvio.tv.updater
 internal object ReshapedApkAssets {
     const val PREFIX = "NuvioRS-"
 
+    /** NuvioTv-Clean APKs: NuvioTv-Clean-<build>-<alias>.apk (the fixed-name NuvioTv-Clean.apk is for Downloader). */
+    private val PREFIXES = listOf("NuvioTv-Clean-", PREFIX)
+
     private val abiAliases = mapOf(
         "arm64-v8a" to "arm64",
         "armeabi-v7a" to "arm32",
@@ -17,7 +20,10 @@ internal object ReshapedApkAssets {
 
     /** Picks the Nuvio RS APK for [supportedAbis] (else the "-any" one), or null when the release has none. */
     fun choose(apkNames: List<String>, supportedAbis: List<String>): String? {
-        val reshaped = apkNames.filter { it.startsWith(PREFIX, ignoreCase = true) }
+        val reshaped = PREFIXES
+            .map { prefix -> apkNames.filter { it.startsWith(prefix, ignoreCase = true) } }
+            .firstOrNull { it.isNotEmpty() }
+            .orEmpty()
         if (reshaped.isEmpty()) return null
         for (abi in supportedAbis) {
             val alias = abiAliases[abi] ?: continue

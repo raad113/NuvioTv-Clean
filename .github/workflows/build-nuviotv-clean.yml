@@ -72,13 +72,14 @@ jobs:
             echo "NUVIO_RELEASE_STORE_PASSWORD=$PASS"
           } >> "$GITHUB_ENV"
 
-      # Every build gets a higher version, so each one installs as an update
+      # Every build gets a higher version (1.0.<build>), so each one installs as an update
+      # and the in-app updater, which compares versions like 1.0.6, recognises it
       - name: Stamp version
         run: |
           set -euo pipefail
           CODE=$((100000 + ${{ github.run_number }}))
           sed -i -E "0,/versionCode[[:space:]]*=[[:space:]]*[0-9]+/s//versionCode = ${CODE}/" app/build.gradle.kts
-          sed -i -E "0,/versionName[[:space:]]*=[[:space:]]*\"[^\"]+\"/s//versionName = \"clean-${{ github.run_number }}\"/" app/build.gradle.kts
+          sed -i -E "0,/versionName[[:space:]]*=[[:space:]]*\"[^\"]+\"/s//versionName = \"1.0.${{ github.run_number }}\"/" app/build.gradle.kts
           grep -nE 'version(Code|Name)[[:space:]]*=' app/build.gradle.kts | head -n 2
 
       - name: Unit tests (CleanStream)
@@ -117,7 +118,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "nuviotv-clean-${{ github.run_number }}" dist/*.apk \
+          gh release create "v1.0.${{ github.run_number }}" dist/*.apk \
             --target "$GITHUB_SHA" \
             --title "NuvioTv-Clean build ${{ github.run_number }}" \
             --notes "Automatic build of commit ${GITHUB_SHA::7}. On Android TV, install NuvioTv-Clean.apk with the Downloader app (or the arm64/arm32 file for your TV)." \
