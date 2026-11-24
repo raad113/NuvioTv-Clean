@@ -63,8 +63,8 @@ data class CleanStreamConfig(
     val subtitleMuteEnabled: Boolean = false,
     /** Per profile: extra words to mute, separated by commas. */
     val customMuteWords: String = "",
-    /** Per profile: skip scenes by themselves, or show a "Skip" button to press. */
-    val skipWithButton: Boolean = false,
+    /** Per profile: show a "Skip" button to press (the default), or skip scenes by themselves. */
+    val skipWithButton: Boolean = true,
 )
 
 /** Choices offered in settings, cycled by pressing the row. */
@@ -197,7 +197,7 @@ object CleanStreamSettings {
             quickSeverity = p.getString(KEY_QUICK_SEVERITY, null) ?: "medium",
             subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + activeProfileId, false),
             customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + activeProfileId, null) ?: "",
-            skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, false),
+            skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, true),
         )
     }
 
@@ -240,7 +240,7 @@ object CleanStreamSettings {
         state.value = state.value.copy(
             subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + profileId, false),
             customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + profileId, null) ?: "",
-            skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + profileId, false),
+            skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + profileId, true),
         )
     }
 
