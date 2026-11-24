@@ -131,6 +131,14 @@ fun AboutSettingsContent(
                                 textAlign = TextAlign.Center
                             )
 
+                            // NuvioTv-Clean: keep the original authors' credit (GPL v3)
+                            Text(
+                                text = "Based on Nuvio by Tapframe and friends",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = NuvioTheme.colors.TextSecondary.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+
                             Text(
                                 text = stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
                                 style = MaterialTheme.typography.labelSmall,
