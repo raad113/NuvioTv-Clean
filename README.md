@@ -10,7 +10,7 @@
 
 ## Install
 
-**Downloader code: `XXXXXXX`** <!-- replace with the code from go.aftvnews.com -->
+**Downloader code: `2307851`** (or open aftv.news/2307851)
 
 Open the **Downloader** app on your TV, enter the code and press **Go**, then install. You can also type this link instead:
 
@@ -54,7 +54,7 @@ The app plays media only from add-ons or sources you choose, and hosts nothing. 
 
 ### التثبيت
 
-**رمز Downloader: `XXXXXXX`**
+**رمز Downloader: `2307851`**
 
 افتح تطبيق **Downloader** على التلفاز، واكتب الرمز ثم اضغط **Go**، وبعدها ثبّت التطبيق. ويمكنك بدلًا من الرمز كتابة هذا الرابط:
 
