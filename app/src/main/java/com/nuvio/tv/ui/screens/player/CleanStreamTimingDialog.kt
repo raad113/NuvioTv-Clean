@@ -90,6 +90,6 @@ internal fun CleanStreamTimingDialog(
 private fun describe(offsetMs: Long): String {
     if (offsetMs == 0L) return "Skips as stored"
     val seconds = abs(offsetMs) / 1000.0
-    val amount = if (seconds % 1.0 == 0.0) "${seconds.toLong()} s" else "%.1f s".format(seconds)
+    val amount = if (seconds % 1.0 == 0.0) "${seconds.toLong()} s" else String.format(java.util.Locale.US, "%.1f s", seconds)
     return if (offsetMs < 0) "Skips $amount earlier" else "Skips $amount later"
 }

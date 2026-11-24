@@ -75,7 +75,8 @@ object SubtitleProfanity {
     internal fun buildPattern(extraWords: String): Pattern {
         val extra = extraWords.split(',', '،', '\n').map { it.trim() }.filter { it.length >= 2 }
         val english = ENGLISH_STEMS.joinToString("|") { Pattern.quote(it) + "\\w*" }
-        val exact = (ARABIC_WORDS + extra).joinToString("|") { Pattern.quote(it) }
+        // Normalised like the subtitle text (diacritics removed, أ/إ/آ as ا), or they would never match
+        val exact = (ARABIC_WORDS + extra).map(::clean).distinct().joinToString("|") { Pattern.quote(it) }
         // Word boundaries that understand Arabic letters too
         return Pattern.compile(
             "(?<![\\p{L}\\p{N}])(?:$english|$exact)(?![\\p{L}\\p{N}])",

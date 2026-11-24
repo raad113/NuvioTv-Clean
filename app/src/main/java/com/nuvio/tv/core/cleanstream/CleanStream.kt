@@ -229,7 +229,10 @@ object CleanStreamSettings {
     }
 
     fun setServerUrl(url: String) {
-        val clean = url.trim().trimEnd('/').ifBlank { DEFAULT_SERVER_URL }
+        var clean = url.trim().trimEnd('/').ifBlank { DEFAULT_SERVER_URL }
+        if (!clean.startsWith("http://") && !clean.startsWith("https://")) clean = "https://$clean"
+        // Keep the previous server when the address cannot be used at all
+        if (runCatching { java.net.URL(clean).toURI() }.isFailure) return
         prefs?.edit()?.putString(KEY_SERVER, clean)?.apply()
         state.value = state.value.copy(serverUrl = clean)
     }
@@ -413,7 +416,12 @@ object CleanStreamClient {
 
     /** Small HTTP helper: returns the body for 2xx responses, otherwise null. */
     private fun request(method: String, url: String, jsonBody: String? = null): String? {
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = try {
+            URL(url).openConnection() as HttpURLConnection
+        } catch (e: Exception) {
+            Log.w(TAG, "Bad server address $url: ${e.message}")
+            return null
+        }
         return try {
             connection.requestMethod = method
             connection.connectTimeout = TIMEOUT_MS

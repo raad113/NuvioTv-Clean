@@ -522,7 +522,6 @@ internal fun PlayerRuntimeController.startProgressUpdates() {
                 recomputeChapterSkipIntervalsIfNeeded()
                 updateActiveSkipInterval(pos)
                 applyCleanStreamSkips(pos)
-                applyCleanStreamSkips(pos)
                 if (!_playbackTimeline.value.isLive) {
                     evaluatePostPlayOverlayVisibility(
                         positionMs = pos,

@@ -93,6 +93,7 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
     if (key == cleanAlignKey) return
     cleanAlignKey = key
     cleanAlignJob?.cancel()
+    val requestKey = cleanSkipsKey
     cleanAlignJob = scope.launch {
         val raw = cleanSkipsRaw
         val pendingRaw = cleanPendingRaw
@@ -154,8 +155,8 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
 
         val aligned = raw.map { line(it) }
         val alignedPending = pendingRaw.map { line(it) }
-        // Ignore the result if the title changed meanwhile
-        if (cleanSkipsRaw !== raw) return@launch
+        // Ignore the result if the title (or its skip list) changed meanwhile
+        if (cleanSkipsKey != requestKey || cleanSkipsRaw !== raw || cleanPendingRaw !== pendingRaw) return@launch
         cleanSkips = aligned
         cleanPending = alignedPending
         cleanMatchedCorrectionMs = matchedCorrection

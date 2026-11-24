@@ -505,14 +505,19 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
             }
 
             if (!skipIntroEnabled) {
-                if (skipIntervals.isNotEmpty() || _uiState.value.activeSkipInterval != null) {
-                    skipIntervals = emptyList()
+                // NuvioTv-Clean: clear only intro/outro intervals; Nuvio Clean's own
+                // Skip buttons and prompts live in the same list and must stay
+                val activeIsIntro = _uiState.value.activeSkipInterval?.type?.startsWith("cleanstream") == false
+                if (apiSkipIntervals.isNotEmpty() || chapterSkipIntervals.isNotEmpty() || activeIsIntro) {
                     apiSkipIntervals = emptyList()
                     chapterSkipIntervals = emptyList()
                     skipChaptersComputedForDuration = 0L
                     skipIntroFetchedKey = null
                     autoSkippedIntervalKeys.clear()
-                    _uiState.update { it.copy(activeSkipInterval = null, skipIntervalDismissed = true) }
+                    recomputeMergedSkipIntervals()
+                    if (activeIsIntro) {
+                        _uiState.update { it.copy(activeSkipInterval = null, skipIntervalDismissed = false) }
+                    }
                 }
             } else {
                 if (!wasEnabled || skipIntroFetchedKey == null) {

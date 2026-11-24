@@ -1,12 +1,17 @@
-# NuvioTv-Clean: builds the APKs on every push to the NuvioTv-Clean branch
-# (or on demand from the Actions tab) and publishes them as a GitHub release,
-# ready to install on Android TV with the Downloader app.
+# NuvioTv-Clean: builds the APKs on every push to the repository's default
+# branch, ccr-ec2cc868-lz49fa (or on demand from the Actions tab), and publishes
+# them as a GitHub release (v1.0.<build>), ready to install on Android TV with
+# the Downloader app or through the in-app updater. If the default branch is
+# ever renamed, change "branches" below to match.
 #
 # Repository secrets (Settings > Secrets and variables > Actions):
 #   NUVIOTV_FAMILY_KEYSTORE_BASE64   base64 of the signing keystore (key alias "nuviotvfamily")
 #   NUVIOTV_FAMILY_KEYSTORE_PASSWORD its password
-#   NUVIOTV_FAMILY_LOCAL_PROPERTIES  optional service keys, one KEY=value per line
-#                                    (TMDB_API_KEY, TRAKT_CLIENT_ID, TRAKT_CLIENT_SECRET, ...)
+#   NUVIOTV_FAMILY_LOCAL_PROPERTIES  service keys, one KEY=value per line (Nuvio account
+#                                    settings NUVIO_SUPABASE_*, older keys)
+#   NUVIO_CLEAN_KEYS                 the project's own keys (TMDB_API_KEY, TRAKT_CLIENT_ID,
+#                                    SIMKL_CLIENT_ID, SIMKL_APP_NAME, optional MDBLIST_CLIENT_ID);
+#                                    they override the same keys in the secret above
 # Without the keystore secrets each build gets a one-off key, so the previous
 # build must be uninstalled before installing the next one.
 

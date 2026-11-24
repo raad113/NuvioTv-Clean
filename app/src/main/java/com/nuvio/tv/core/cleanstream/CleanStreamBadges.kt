@@ -69,14 +69,20 @@ object CleanStreamBadges {
         if (isShow && imdbId.startsWith("tt")) showIds.add(imdbId)
         if (!CleanStreamSettings.current.enabled) return
         if (!requested.add(imdbId)) return
-        queue.add(imdbId)
         synchronized(this) {
-            if (batchJob?.isActive == true) return
+            queue.add(imdbId)
+            if (batchJob != null) return // the running batch will pick it up
             batchJob = scope.launch {
                 delay(BATCH_DELAY_MS)
-                while (queue.isNotEmpty()) {
-                    val batch = queue.take(MAX_PER_REQUEST)
-                    queue.removeAll(batch.toSet())
+                while (true) {
+                    // Taking the next batch and ending the job happen under the same lock
+                    // as adding to the queue, so no request can slip in between
+                    val batch = synchronized(this@CleanStreamBadges) {
+                        val next = queue.take(MAX_PER_REQUEST)
+                        if (next.isEmpty()) batchJob = null else queue.removeAll(next.toSet())
+                        next
+                    }
+                    if (batch.isEmpty()) break
                     fetch(batch)
                 }
             }
@@ -88,7 +94,13 @@ object CleanStreamBadges {
         val shows = ids.filter { it in showIds }
         val url = "$server/api/badges?ids=${ids.joinToString(",")}" +
             if (shows.isNotEmpty()) "&shows=${shows.joinToString(",")}" else ""
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = try {
+            URL(url).openConnection() as HttpURLConnection
+        } catch (e: Exception) {
+            Log.w(TAG, "Bad server address: ${e.message}")
+            requested.removeAll(ids.toSet())
+            return
+        }
         try {
             connection.connectTimeout = TIMEOUT_MS
             connection.readTimeout = TIMEOUT_MS

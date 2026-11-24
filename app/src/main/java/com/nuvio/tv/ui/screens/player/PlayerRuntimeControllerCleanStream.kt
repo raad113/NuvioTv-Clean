@@ -73,8 +73,15 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanSkipsRaw = emptyList()
     cleanPendingRaw = emptyList()
     cleanAlignKey = null
+    cleanAlignJob?.cancel() // an alignment for the previous title must not land on this one
+    cleanAlignJob = null
     cleanDisabledIds.clear()
     cleanUndo = null
+    // A ♥ start mark from the previous title must not become this title's scene
+    cleanMarkStartMs = null
+    cleanShareJob?.cancel()
+    cleanShareJob = null
+    _uiState.update { it.copy(cleanStreamMarking = false) }
     cleanSubtitleSourceKey = null
     cleanSubtitleMutes = emptyList()
     releaseCleanStreamMute()
@@ -132,9 +139,6 @@ internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
         releaseCleanStreamMute()
         return
     }
-    // In a watch party only the host controls playback
-    if (isPartyControlLocked) return
-
     // Timing adjustment and safety margin from settings
     val startShift = config.offsetMs - config.marginMs
     val endShift = config.offsetMs + config.marginMs
@@ -171,6 +175,8 @@ internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
     }
 
     if (active == null || active.channel == "audio") return
+    // In a watch party only the host controls playback (muting above still applies)
+    if (isPartyControlLocked) return
     // This profile prefers a "Skip" button (see cleanStreamPendingIntervals)
     if (config.skipWithButton) return
 
