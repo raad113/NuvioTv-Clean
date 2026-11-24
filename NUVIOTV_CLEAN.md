@@ -43,7 +43,8 @@ It is not made or supported by the Nuvio team.
 * Nuvio account sync, Trakt and other services need keys that are not included.
   Add your own keys (for example `TMDB_API_KEY`, `TRAKT_CLIENT_ID`, `TRAKT_CLIENT_SECRET`)
   as one `KEY=value` per line in the repository secret `NUVIOTV_FAMILY_LOCAL_PROPERTIES`.
-  Nuvio account sync uses the Nuvio team's own server and is not available.
+  Nuvio account sign-in needs `NUVIO_SUPABASE_URL`, `NUVIO_SUPABASE_ANON_KEY` and
+  `NUVIO_SUPABASE_FALLBACK_URL` in the same secret.
 
 ## Signing (so updates install over the old version)
 
@@ -53,9 +54,10 @@ without it, future builds cannot update an installed NuvioTv-Clean.
 
 ## Installing on Android TV
 
-1. Open the repository's **Releases** page and copy the link to the latest `NuvioTv-Clean-*.apk`.
-2. On the TV, install the **Downloader** app, enter the link and install the APK
-   (allow "install unknown apps" for Downloader when asked).
+1. On the TV, install the **Downloader** app.
+2. Enter the Downloader code from the README, or the link
+   `https://github.com/raad113/NuvioTv-Clean/releases/latest/download/NuvioTv-Clean.apk`,
+   and install the APK (allow "install unknown apps" for Downloader when asked).
 
 ## Licence
 
