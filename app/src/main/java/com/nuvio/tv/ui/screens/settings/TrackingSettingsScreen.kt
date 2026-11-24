@@ -546,18 +546,21 @@ internal fun TrackingSettingsOverview(
                                 .focusRequester(simklFocusRequester)
                                 .testTag(TrackingSettingsTestTags.SIMKL_PROVIDER)
                         )
-                        SettingsActionRow(
-                            title = stringResource(R.string.mdblist_name),
-                            subtitle = mdbListPresentation.subtitle,
-                            value = mdbListPresentation.value,
-                            valueColor = mdbListPresentation.color,
-                            leadingRawIconRes = R.raw.mdblist_logo,
-                            leadingArtworkSize = 40.dp,
-                            onClick = onMdbListClick,
-                            modifier = Modifier
-                                .focusRequester(mdbListFocusRequester)
-                                .testTag(TrackingSettingsTestTags.MDBLIST_PROVIDER)
-                        )
+                        // NuvioTv-Clean: MDBList is only offered when this build has an MDBList key
+                        if (com.nuvio.tv.BuildConfig.MDBLIST_CLIENT_ID.isNotBlank() || mdbListState.isConnected) {
+                            SettingsActionRow(
+                                title = stringResource(R.string.mdblist_name),
+                                subtitle = mdbListPresentation.subtitle,
+                                value = mdbListPresentation.value,
+                                valueColor = mdbListPresentation.color,
+                                leadingRawIconRes = R.raw.mdblist_logo,
+                                leadingArtworkSize = 40.dp,
+                                onClick = onMdbListClick,
+                                modifier = Modifier
+                                    .focusRequester(mdbListFocusRequester)
+                                    .testTag(TrackingSettingsTestTags.MDBLIST_PROVIDER)
+                            )
+                        }
                     }
                 }
                 item(key = "tracking_sources") {
