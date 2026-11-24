@@ -41,9 +41,13 @@ jobs:
       - name: Prepare local properties
         env:
           LOCAL_PROPERTIES: ${{ secrets.NUVIOTV_FAMILY_LOCAL_PROPERTIES }}
+          # Project keys (TMDB, Trakt, Simkl) kept in a second secret; when a key
+          # is in both, this one wins because later lines override earlier ones
+          PROJECT_KEYS: ${{ secrets.NUVIO_CLEAN_KEYS }}
         run: |
           {
             printf '%s\n' "$LOCAL_PROPERTIES"
+            printf '%s\n' "$PROJECT_KEYS"
             # The in-app updater only ever looks at this repository's releases
             echo "NUVIO_UPDATE_GITHUB_OWNER=${GITHUB_REPOSITORY_OWNER}"
             echo "NUVIO_UPDATE_GITHUB_REPO=${GITHUB_REPOSITORY#*/}"
