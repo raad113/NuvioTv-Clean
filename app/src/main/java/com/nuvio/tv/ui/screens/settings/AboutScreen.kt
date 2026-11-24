@@ -133,7 +133,7 @@ fun AboutSettingsContent(
 
                             // NuvioTv-Clean: keep the original authors' credit (GPL v3)
                             Text(
-                                text = "Based on Nuvio by Tapframe and friends",
+                                text = "Based on Nuvio by Tapframe and friends\nNuvio Clean uses Trakt but is not endorsed or certified by Trakt",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = NuvioTheme.colors.TextSecondary.copy(alpha = 0.7f),
                                 textAlign = TextAlign.Center

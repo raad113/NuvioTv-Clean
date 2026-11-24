@@ -38,7 +38,7 @@ All [NuvioTV Reshaped](https://github.com/DavidVamaiotu/NuvioTV-Reshaped) featur
 
 ## Credits and legal
 
-Built on NuvioTV Reshaped and [NuvioTV](https://github.com/tapframe/NuvioTV). Unofficial and not supported by the Nuvio or Reshaped teams. Licensed under [GPL v3](./LICENSE). Uses the TMDB API but is not endorsed or certified by TMDB.
+Built on NuvioTV Reshaped and [NuvioTV](https://github.com/tapframe/NuvioTV). Unofficial and not supported by the Nuvio or Reshaped teams. Licensed under [GPL v3](./LICENSE). Uses the TMDB API but is not endorsed or certified by TMDB. Nuvio Clean uses Trakt but is not endorsed or certified by Trakt. See the [privacy policy](./PRIVACY.md).
 
 The app plays media only from add-ons or sources you choose, and hosts nothing. Use it only for content you are allowed to watch. Build details are in [NUVIOTV_CLEAN.md](./NUVIOTV_CLEAN.md).
 
@@ -86,7 +86,7 @@ https://github.com/raad113/NuvioTv-Clean/releases/latest/download/NuvioTv-Clean.
 
 ### الحقوق والجانب القانوني
 
-مبني على NuvioTV Reshaped وNuvioTV، وهو غير رسمي ولا يدعمه فريق Nuvio أو Reshaped. مرخّص بموجب GPL v3، ويستخدم واجهة TMDB دون أن تعتمده TMDB أو تصادق عليه.
+مبني على NuvioTV Reshaped وNuvioTV، وهو غير رسمي ولا يدعمه فريق Nuvio أو Reshaped. مرخّص بموجب GPL v3، ويستخدم واجهة TMDB دون أن تعتمده TMDB أو تصادق عليه. ويستخدم Nuvio Clean خدمة Trakt دون أن تعتمده Trakt أو تصادق عليه.
 
 يشغّل التطبيق المحتوى فقط من الإضافات أو المصادر التي تختارها، ولا يستضيف أي محتوى. استخدمه فقط لمشاهدة ما يحق لك مشاهدته.
 
