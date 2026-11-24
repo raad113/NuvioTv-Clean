@@ -585,6 +585,17 @@ class PlayerRuntimeController(
     internal var cleanShareJob: kotlinx.coroutines.Job? = null
     internal var cleanSubtitleMutes: List<com.nuvio.tv.core.cleanstream.CleanSkip> = emptyList()
     internal var cleanSubtitleSourceKey: String? = null
+    // Skips as the server sent them, before lining them up with this copy of the film
+    internal var cleanSkipsRaw: List<com.nuvio.tv.core.cleanstream.CleanSkip> = emptyList()
+    internal var cleanPendingRaw: List<com.nuvio.tv.core.cleanstream.CleanSkip> = emptyList()
+    internal var cleanAlignKey: String? = null
+    internal var cleanAlignJob: kotlinx.coroutines.Job? = null
+    internal var cleanLocalRef: com.nuvio.tv.core.cleanstream.TimingRef? = null
+    internal var cleanLocalRefKey: String? = null
+    // Skips the viewer reported as wrong during this playback, and the "Wrong skip?" offer
+    internal val cleanDisabledIds: MutableSet<String> = mutableSetOf()
+    internal var cleanUndo: CleanStreamUndo? = null
+    internal var cleanUndoJob: kotlinx.coroutines.Job? = null
     internal var lastActiveSkipType: String? = null
     internal var autoSubtitleSelected: Boolean = false
     internal var isUserExplicitSubtitleSelection: Boolean = false

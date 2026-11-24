@@ -53,6 +53,17 @@ object SubtitleProfanity {
             }
         }
 
+    /** Download a subtitle file and return all its lines (empty on failure). */
+    suspend fun loadCues(url: String, headers: Map<String, String>?): List<Cue> =
+        withContext(Dispatchers.IO) {
+            try {
+                download(url, headers)?.let(::parseCues) ?: emptyList()
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not read subtitles: ${e.message}")
+                emptyList()
+            }
+        }
+
     /** Cues that contain strong language, as audio-only skips. */
     fun findMutes(cues: List<Cue>, extraWords: String): List<CleanSkip> {
         val pattern = buildPattern(extraWords)

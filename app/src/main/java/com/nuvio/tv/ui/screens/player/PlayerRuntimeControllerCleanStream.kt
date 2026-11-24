@@ -50,6 +50,8 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     if (!config.enabled || contentKey == null) {
         cleanSkips = emptyList()
         cleanPending = emptyList()
+        cleanSkipsRaw = emptyList()
+        cleanPendingRaw = emptyList()
         cleanSkipsKey = null
         cleanContentKey = null
         recomputeMergedSkipIntervals()
@@ -61,6 +63,11 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanContentKey = contentKey
     cleanSkips = emptyList()
     cleanPending = emptyList()
+    cleanSkipsRaw = emptyList()
+    cleanPendingRaw = emptyList()
+    cleanAlignKey = null
+    cleanDisabledIds.clear()
+    cleanUndo = null
     cleanSubtitleSourceKey = null
     cleanSubtitleMutes = emptyList()
     releaseCleanStreamMute()
@@ -71,11 +78,15 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
         // The viewer may have moved to another title while this was loading
         if (cleanSkipsKey == requestKey) {
             val skips = result.skips
+            // Used as they are until they are lined up with this copy (maybeAlignCleanStreamSkips)
+            cleanSkipsRaw = skips
+            cleanPendingRaw = result.pending
             cleanSkips = skips
             cleanPending = result.pending
+            cleanAlignKey = null
             recomputeMergedSkipIntervals()
             if (skips.isNotEmpty()) {
-                showCleanStreamNotice("NuvioTv-Clean: ${skips.size} scene${if (skips.size == 1) "" else "s"} will be skipped")
+                showCleanStreamNotice("Nuvio Clean: ${skips.size} scene${if (skips.size == 1) "" else "s"} will be skipped")
             }
         }
     }
@@ -107,6 +118,7 @@ private fun PlayerRuntimeController.cleanStreamContentId(id: String?, season: In
 internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
     val config = CleanStreamSettings.current
     refreshCleanStreamSubtitleMutes(config)
+    maybeAlignCleanStreamSkips()
     if (!config.enabled) {
         releaseCleanStreamMute()
         return
@@ -118,7 +130,8 @@ internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
     val startShift = config.offsetMs - config.marginMs
     val endShift = config.offsetMs + config.marginMs
     val active: CleanSkip? = cleanSkips.firstOrNull {
-        positionMs >= it.startMs + startShift && positionMs < it.endMs + endShift - CLEAN_END_MARGIN_MS
+        positionMs >= it.startMs + startShift && positionMs < it.endMs + endShift - CLEAN_END_MARGIN_MS &&
+            !isCleanSkipDisabled(it)
     }
 
     // Strong language found in the subtitles (follows the subtitle delay setting)
@@ -160,6 +173,7 @@ internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
     scheduleProgressSyncAfterSeek()
     val seconds = ((active.endMs - active.startMs) / 1000).coerceAtLeast(1)
     showCleanStreamNotice("Skipped ${seconds}s: ${active.label}")
+    offerCleanStreamUndo(active, target)
 }
 
 /**
@@ -210,7 +224,7 @@ private fun PlayerRuntimeController.setCleanStreamMuted(muted: Boolean) {
 }
 
 /** Reuses the small "Source: ..." pill that the player already shows. */
-private fun PlayerRuntimeController.showCleanStreamNotice(text: String) {
+internal fun PlayerRuntimeController.showCleanStreamNotice(text: String) {
     hideStreamSourceIndicatorJob?.cancel()
     _uiState.update { it.copy(showStreamSourceIndicator = true, streamSourceIndicatorText = text) }
     hideStreamSourceIndicatorJob = scope.launch {
@@ -231,7 +245,7 @@ private fun PlayerRuntimeController.showCleanStreamNotice(text: String) {
 internal fun PlayerRuntimeController.cleanStreamPendingIntervals(): List<SkipInterval> {
     val config = CleanStreamSettings.current
     if (!config.enabled) return emptyList()
-    return cleanPending.mapNotNull { p ->
+    return cleanStreamUndoIntervals() + cleanPending.filterNot { isCleanSkipDisabled(it) }.mapNotNull { p ->
         val id = p.ids.firstOrNull() ?: return@mapNotNull null
         SkipInterval(
             startTime = (p.startMs + config.offsetMs).coerceAtLeast(0L) / 1000.0,
@@ -252,7 +266,9 @@ internal fun PlayerRuntimeController.onCleanStreamPromptSkipped(interval: SkipIn
     cleanPending = cleanPending.filterNot { it.ids.contains(segmentId) }
     recomputeMergedSkipIntervals()
     scope.launch {
-        CleanStreamClient.vote(serverUrl, contentKey, segmentId, up = true)
+        // Our copy's fingerprint lets this skip be lined up on other copies too
+        val ref = withTimeoutOrNull(15_000L) { cleanStreamLocalTimeline() }
+        CleanStreamClient.vote(serverUrl, contentKey, segmentId, up = true, ref = ref)
     }
     showCleanStreamNotice("Thanks, you confirmed this scene")
 }
@@ -308,6 +324,8 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
     showCleanStreamNotice("Sharing in 5 seconds. Press ♥ to cancel.")
     cleanShareJob = scope.launch {
         delay(CLEAN_SHARE_DELAY_MS)
+        // This copy's fingerprint, so other copies of the film can line the scene up
+        val ref = withTimeoutOrNull(15_000L) { cleanStreamLocalTimeline() }
         val status = CleanStreamClient.contribute(
             serverUrl = config.serverUrl,
             contentId = contentKey,
@@ -316,6 +334,7 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
             category = "sex",
             severity = severity,
             comment = "Kissing / sexual scene (marked on TV)",
+            ref = ref,
         )
         showCleanStreamNotice(
             when (status) {

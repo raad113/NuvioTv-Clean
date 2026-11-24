@@ -622,6 +622,15 @@ fun ContentCard(
                             .zIndex(2f)
                     )
                 }
+
+                // NuvioTv-Clean: "✓ CLEAN" and digital release tags
+                CleanStreamPosterBadges(
+                    item = item,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = NuvioTheme.spacing.sm, top = NuvioTheme.spacing.sm)
+                        .zIndex(2f)
+                )
             }
         }
 

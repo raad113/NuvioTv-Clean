@@ -208,6 +208,7 @@ internal fun PlayerRuntimeController.skipActiveInterval(): Boolean {
 
 internal fun PlayerRuntimeController.skipInterval(interval: SkipInterval): Boolean {
     if (interval.type == "post-credits") return false
+    if (onCleanStreamUndoPressed(interval)) return true // NuvioTv-Clean: "Wrong skip? Go back"
     onCleanStreamPromptSkipped(interval) // NuvioTv-Clean: confirms an unconfirmed scene
     val duration = currentPlaybackDurationMs().takeIf { it > 0 } ?: Long.MAX_VALUE
     val postCredits = interval.followingPostCreditsScene(skipIntervals, currentPlaybackDurationMs())

@@ -88,8 +88,56 @@ data class CleanSkip(
     val label: String,
     /** Server segment ids behind this skip, used for confirming or rejecting it. */
     val ids: List<String> = emptyList(),
+    /** Timing fingerprint of the copy the skip was marked on (null if unknown). */
+    val refId: String? = null,
+    /** Length of that copy in milliseconds (null if unknown). */
+    val durationMs: Long? = null,
 ) {
     val key: String get() = "$startMs-$endMs"
+}
+
+/**
+ * Timing fingerprint of one copy of a film: the start and end times of its
+ * subtitle lines (never the text). Two copies of the same film have the same
+ * pattern of speech, so comparing fingerprints tells how one copy's times map
+ * onto another's, even across frame rates, cuts and languages.
+ */
+data class TimingRef(
+    /** "embedded" (subtitles inside the video file) or "subtitle" (an add-on subtitle). */
+    val kind: String,
+    val durationMs: Long?,
+    /** (startMs, endMs) of each subtitle line, in time order. */
+    val cues: List<Pair<Long, Long>>,
+) {
+    fun toJson(): JSONObject = JSONObject().apply {
+        put("kind", kind)
+        durationMs?.let { put("durationMs", it) }
+        put("cues", org.json.JSONArray().apply {
+            cues.forEach { (s, e) -> put(org.json.JSONArray().put(s).put(e)) }
+        })
+    }
+
+    companion object {
+        /** Lowest and highest line counts the server accepts. */
+        const val MIN_CUES = 50
+        const val MAX_CUES = 6000
+
+        fun fromJson(json: JSONObject): TimingRef? {
+            val array = json.optJSONArray("cues") ?: return null
+            val cues = (0 until array.length()).mapNotNull { i ->
+                val pair = array.optJSONArray(i) ?: return@mapNotNull null
+                val start = pair.optLong(0, -1)
+                val end = pair.optLong(1, -1)
+                if (start < 0 || end <= start) null else start to end
+            }
+            if (cues.size < MIN_CUES) return null
+            return TimingRef(
+                kind = json.optString("kind", "subtitle"),
+                durationMs = json.optLong("durationMs", 0).takeIf { it > 0 },
+                cues = cues,
+            )
+        }
+    }
 }
 
 /**
@@ -155,6 +203,9 @@ object CleanStreamSettings {
     }
 
     val current: CleanStreamConfig get() = state.value
+
+    /** Settings as a flow, for screens that redraw when they change. */
+    val flow: StateFlow<CleanStreamConfig> get() = state.asStateFlow()
 
     fun setEnabled(enabled: Boolean) {
         prefs?.edit()?.putBoolean(KEY_ENABLED, enabled)?.apply()
@@ -245,12 +296,36 @@ object CleanStreamClient {
         }
     }
 
-    /** Confirm ("up") or reject ("down") a pending skip. */
-    suspend fun vote(serverUrl: String, contentId: String, segmentId: String, up: Boolean): Boolean = withContext(Dispatchers.IO) {
+    /**
+     * Confirm ("up") or report ("down") a skip.
+     * @param reason why it was reported, e.g. "timing"
+     * @param ref this copy's timing fingerprint, sent with confirmations so a
+     *            skip without one can be lined up on other copies afterwards
+     */
+    suspend fun vote(
+        serverUrl: String,
+        contentId: String,
+        segmentId: String,
+        up: Boolean,
+        reason: String? = null,
+        ref: TimingRef? = null,
+    ): Boolean = withContext(Dispatchers.IO) {
         val id = URLEncoder.encode(contentId, "UTF-8")
         val seg = URLEncoder.encode(segmentId, "UTF-8")
-        val payload = JSONObject().put("vote", if (up) "up" else "down").toString()
-        request("POST", "${serverUrl.trimEnd('/')}/api/vote/$id/$seg", payload) != null
+        val payload = JSONObject().put("vote", if (up) "up" else "down")
+        reason?.let { payload.put("reason", it) }
+        if (up && ref != null) payload.put("ref", ref.toJson())
+        request("POST", "${serverUrl.trimEnd('/')}/api/vote/$id/$seg", payload.toString()) != null
+    }
+
+    private val refCache = java.util.concurrent.ConcurrentHashMap<String, TimingRef>()
+
+    /** Download a timing fingerprint (they never change, so they are cached). */
+    suspend fun fetchRef(serverUrl: String, refId: String): TimingRef? = withContext(Dispatchers.IO) {
+        if (!Regex("^[0-9a-f]{16}$").matches(refId)) return@withContext null
+        refCache[refId]?.let { return@withContext it }
+        val body = request("GET", "${serverUrl.trimEnd('/')}/api/refs/$refId") ?: return@withContext null
+        runCatching { TimingRef.fromJson(JSONObject(body)) }.getOrNull()?.also { refCache[refId] = it }
     }
 
     /**
@@ -265,6 +340,7 @@ object CleanStreamClient {
         category: String,
         severity: String,
         comment: String,
+        ref: TimingRef? = null,
     ): String? = withContext(Dispatchers.IO) {
         val id = URLEncoder.encode(contentId, "UTF-8")
         val payload = JSONObject()
@@ -275,6 +351,7 @@ object CleanStreamClient {
             .put("channel", "both")
             .put("comment", comment)
             .put("contributor", "nuviotv-clean")
+            .apply { ref?.let { put("ref", it.toJson()) } }
             .toString()
         val body = request("POST", "${serverUrl.trimEnd('/')}/api/contribute/$id", payload) ?: return@withContext null
         runCatching { JSONObject(body).optString("status", "pending") }.getOrDefault("pending")
@@ -320,6 +397,8 @@ object CleanStreamClient {
                 channel = o.optString("channel", "both").ifBlank { "both" },
                 label = o.optString("description").ifBlank { o.optString("category", "scene") },
                 ids = ids,
+                refId = o.optString("refId").takeIf { it.isNotBlank() && it != "null" },
+                durationMs = o.optLong("durationMs", 0).takeIf { it > 0 },
             )
         }
         return out.sortedBy { it.startMs }
