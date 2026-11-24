@@ -362,6 +362,15 @@ fun GridContentCard(
                         .align(Alignment.BottomCenter)
                         .zIndex(2f)
                 )
+
+                // NuvioTv-Clean: small shield in the corner for titles with skips
+                CleanStreamPosterShield(
+                    item = item,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 5.dp, top = 5.dp)
+                        .zIndex(2f)
+                )
             }
         }
 

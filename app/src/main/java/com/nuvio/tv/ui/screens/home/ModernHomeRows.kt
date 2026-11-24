@@ -1525,6 +1525,13 @@ private fun ModernCarouselCard(
                             .align(Alignment.BottomCenter)
                             .zIndex(2f)
                     )
+                    com.nuvio.tv.ui.components.CleanStreamPosterShield(
+                        item = preview,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = 5.dp, top = 5.dp)
+                            .zIndex(2f)
+                    )
                 }
             }
         }

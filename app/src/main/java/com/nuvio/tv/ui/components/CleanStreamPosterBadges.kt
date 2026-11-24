@@ -1,10 +1,10 @@
 package com.nuvio.tv.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
@@ -29,59 +29,66 @@ import com.nuvio.tv.domain.model.MetaPreview
 // Same look as the pale "#17 Today" tabs that catalog posters carry at the top
 private val TabBackground = Color(0xF2D4F1EC)
 private val TabText = Color(0xFF16353A)
-private val ShieldColor = Color(0xFF0F8A6C)
-private val UnconfirmedShieldColor = Color(0x9916353A)
+private val ShieldBackground = Color(0xCC101820)
+private val ShieldConfirmed = Color(0xFF78ECC8) // the mint of the Nuvio Clean logo
+private val ShieldUnconfirmed = Color(0xB3FFFFFF)
 
 /**
- * NuvioTv-Clean: a small tab on the bottom edge of any poster, in the style of
- * the "#17 Today" tabs at the top. It shows a solid shield when the title has
- * confirmed skips, a faded outlined one when it only has unconfirmed skips, and for movies the digital release ("Digital · Mar 2024",
- * "Digital 12 Dec", "In Cinemas"). Posters from the CleanStream add-on already
- * have these drawn in, so they are left alone.
+ * NuvioTv-Clean: a small tab on the bottom edge of a movie poster with its
+ * digital release ("Digital · Mar 2024", "Digital 12 Dec", "In Cinemas"), in
+ * the style of the "#17 Today" tabs at the top. Posters from the CleanStream
+ * add-on already have this drawn in, so they are left alone.
  */
 @Composable
 fun CleanStreamPosterBadges(item: MetaPreview, modifier: Modifier = Modifier) {
-    val config by CleanStreamSettings.flow.collectAsState()
-    if (!config.enabled) return
-    val serverHost = config.serverUrl.substringAfter("://").substringBefore('/')
-    if (serverHost.isNotBlank() && item.poster?.contains(serverHost) == true) return
-
-    val key = badgeKeyFor(item) ?: return
-    LaunchedEffect(key) { CleanStreamBadges.request(key) }
-
-    val badges by CleanStreamBadges.badges.collectAsState()
-    val badge = badges[key] ?: return
-    val release = if (item.type == ContentType.MOVIE) CleanStreamBadges.releaseText(badge) else null
-    val text = release ?: when {
-        badge.clean -> "Clean"
-        badge.hasUnconfirmed -> "Unconfirmed"
-        else -> return
-    }
-
-    Row(
+    val badge = rememberCleanBadge(item) ?: return
+    if (item.type != ContentType.MOVIE) return
+    val text = CleanStreamBadges.releaseText(badge) ?: return
+    Text(
+        text = text,
+        color = TabText,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
         modifier = modifier
             .background(TabBackground, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
             .padding(horizontal = 8.dp, vertical = 3.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    )
+}
+
+/**
+ * NuvioTv-Clean: a small shield for the corner of a poster. Solid mint when
+ * the title has confirmed skips, a faded outline when it only has unconfirmed
+ * ones, nothing otherwise.
+ */
+@Composable
+fun CleanStreamPosterShield(item: MetaPreview, modifier: Modifier = Modifier) {
+    val badge = rememberCleanBadge(item) ?: return
+    if (!badge.clean && !badge.hasUnconfirmed) return
+    Box(
+        modifier = modifier.size(16.dp).background(ShieldBackground, CircleShape),
+        contentAlignment = Alignment.Center,
     ) {
-        if (badge.clean) {
-            Icon(
-                imageVector = Icons.Filled.Shield,
-                contentDescription = "Clean version available",
-                tint = ShieldColor,
-                modifier = Modifier.size(12.dp),
-            )
-        } else if (badge.hasUnconfirmed) {
-            Icon(
-                imageVector = Icons.Outlined.OutlinedShield,
-                contentDescription = "Unconfirmed skips available",
-                tint = UnconfirmedShieldColor,
-                modifier = Modifier.size(12.dp),
-            )
-        }
-        Text(text = text, color = TabText, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Icon(
+            imageVector = if (badge.clean) Icons.Filled.Shield else Icons.Outlined.OutlinedShield,
+            contentDescription = if (badge.clean) "Clean version available" else "Unconfirmed skips available",
+            tint = if (badge.clean) ShieldConfirmed else ShieldUnconfirmed,
+            modifier = Modifier.size(10.dp),
+        )
     }
+}
+
+/** This poster's tags from the server, or null when none apply or they are not loaded yet. */
+@Composable
+private fun rememberCleanBadge(item: MetaPreview): CleanStreamBadges.Badge? {
+    val config by CleanStreamSettings.flow.collectAsState()
+    if (!config.enabled) return null
+    val serverHost = config.serverUrl.substringAfter("://").substringBefore('/')
+    if (serverHost.isNotBlank() && item.poster?.contains(serverHost) == true) return null
+    val key = badgeKeyFor(item) ?: return null
+    LaunchedEffect(key) { CleanStreamBadges.request(key) }
+    val badges by CleanStreamBadges.badges.collectAsState()
+    return badges[key]
 }
 
 /**
