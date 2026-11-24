@@ -63,6 +63,8 @@ data class CleanStreamConfig(
     val subtitleMuteEnabled: Boolean = false,
     /** Per profile: extra words to mute, separated by commas. */
     val customMuteWords: String = "",
+    /** Per profile: skip scenes by themselves, or show a "Skip" button to press. */
+    val skipWithButton: Boolean = false,
 )
 
 /** Choices offered in settings, cycled by pressing the row. */
@@ -162,6 +164,7 @@ object CleanStreamSettings {
     private const val KEY_QUICK_SEVERITY = "quick_severity"
     private const val KEY_SUB_MUTE_PREFIX = "subtitle_mute_enabled_"
     private const val KEY_SUB_WORDS_PREFIX = "subtitle_mute_words_"
+    private const val KEY_SKIP_BUTTON_PREFIX = "skip_with_button_"
 
     /** The Nuvio profile whose subtitle-muting settings are in use. */
     private var activeProfileId: Int = 1
@@ -194,6 +197,7 @@ object CleanStreamSettings {
             quickSeverity = p.getString(KEY_QUICK_SEVERITY, null) ?: "medium",
             subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + activeProfileId, false),
             customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + activeProfileId, null) ?: "",
+            skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, false),
         )
     }
 
@@ -236,7 +240,14 @@ object CleanStreamSettings {
         state.value = state.value.copy(
             subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + profileId, false),
             customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + profileId, null) ?: "",
+            skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + profileId, false),
         )
+    }
+
+    /** This profile: true shows a "Skip" button for each scene instead of skipping by itself. */
+    fun setSkipWithButton(withButton: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, withButton)?.apply()
+        state.value = state.value.copy(skipWithButton = withButton)
     }
 
     fun setSubtitleMuteEnabled(enabled: Boolean) {

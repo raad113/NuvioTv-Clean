@@ -65,8 +65,8 @@ fun CleanStreamSettingsContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SettingsDetailHeader(
-            title = "NuvioTv-Clean",
-            subtitle = "Automatically skip or mute unwanted scenes using CleanStream community data"
+            title = "Nuvio Clean",
+            subtitle = "Skip or mute unwanted scenes using CleanStream community data"
         )
 
         SettingsGroupCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -80,7 +80,7 @@ fun CleanStreamSettingsContent(
                 ) {
                     item(key = "cleanstream_enabled") {
                         SettingsToggleRow(
-                            title = "Automatic skipping",
+                            title = "Scene skipping",
                             subtitle = "Skip flagged scenes and mute flagged language while playing",
                             checked = config.enabled,
                             onToggle = { CleanStreamSettings.setEnabled(!config.enabled) },
@@ -90,6 +90,20 @@ fun CleanStreamSettingsContent(
                                     if (initialFocusRequester != null) Modifier.focusRequester(initialFocusRequester)
                                     else Modifier
                                 )
+                        )
+                    }
+                    item(key = "cleanstream_skip_mode") {
+                        SettingsActionRow(
+                            title = "How to skip (this profile)",
+                            subtitle = if (config.skipWithButton) {
+                                "A \"Skip\" button appears during each flagged scene, like Skip Intro. Press it to skip, or keep watching"
+                            } else {
+                                "Flagged scenes are skipped by themselves, with a short notice"
+                            },
+                            value = if (config.skipWithButton) "Show a Skip button" else "Skip automatically",
+                            onClick = { CleanStreamSettings.setSkipWithButton(!config.skipWithButton) },
+                            enabled = config.enabled,
+                            modifier = Modifier
                         )
                     }
                     item(key = "cleanstream_server") {

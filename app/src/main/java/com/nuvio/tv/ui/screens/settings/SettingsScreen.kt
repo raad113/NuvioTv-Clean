@@ -109,8 +109,7 @@ private enum class IntegrationSettingsSection {
     Debrid,
     Tmdb,
     MdbList,
-    AnimeSkip,
-    CleanStream
+    AnimeSkip
 }
 
 internal enum class SettingsSectionDestination {
@@ -164,6 +163,7 @@ private fun settingsSectionSpec(category: SettingsCategory): SettingsSectionSpec
     SettingsCategory.CONTENT_DISCOVERY -> SettingsSectionSpec(category, stringResource(R.string.settings_content_discovery), Icons.Default.Explore, destination = SettingsSectionDestination.Inline)
     SettingsCategory.PLAYBACK -> SettingsSectionSpec(category, stringResource(R.string.settings_playback), Icons.Rounded.PlayArrow, destination = SettingsSectionDestination.Inline)
     SettingsCategory.NUVIO_RESHAPED -> SettingsSectionSpec(category, stringResource(R.string.settings_nuvio_reshaped), Icons.Default.AutoAwesome, destination = SettingsSectionDestination.Inline) // Nuvio RS hook
+    SettingsCategory.NUVIO_CLEAN -> SettingsSectionSpec(category, "Nuvio Clean", Icons.Default.FastForward, destination = SettingsSectionDestination.Inline) // NuvioTv-Clean
     SettingsCategory.INTEGRATION -> SettingsSectionSpec(category, stringResource(R.string.settings_integration), Icons.Default.Link, destination = SettingsSectionDestination.Inline)
     SettingsCategory.TRACKING -> SettingsSectionSpec(category, stringResource(R.string.settings_tracking_title), Icons.Default.Sync, destination = SettingsSectionDestination.Inline)
     SettingsCategory.ADVANCED -> SettingsSectionSpec(category, stringResource(R.string.settings_advanced), Icons.Default.Build, destination = SettingsSectionDestination.Inline)
@@ -239,6 +239,7 @@ fun SettingsScreen(
             SettingsCategory.TRACKING to FocusRequester(),
             SettingsCategory.PLAYBACK to FocusRequester(),
             SettingsCategory.NUVIO_RESHAPED to FocusRequester(), // Nuvio RS hook
+            SettingsCategory.NUVIO_CLEAN to FocusRequester(), // NuvioTv-Clean
             SettingsCategory.ADVANCED to FocusRequester(),
             SettingsCategory.ABOUT to FocusRequester(),
             SettingsCategory.ACCOUNT to FocusRequester()
@@ -250,7 +251,6 @@ fun SettingsScreen(
     val integrationTmdbFocusRequester = remember { FocusRequester() }
     val integrationMdbListFocusRequester = remember { FocusRequester() }
     val integrationAnimeSkipFocusRequester = remember { FocusRequester() }
-    val integrationCleanStreamFocusRequester = remember { FocusRequester() }
     var integrationSection by remember { mutableStateOf(IntegrationSettingsSection.Hub) }
     var integrationHubReturnSection by remember { mutableStateOf(IntegrationSettingsSection.Hub) }
     var pendingContentFocusCategory by remember { mutableStateOf<SettingsCategory?>(null) }
@@ -660,7 +660,6 @@ fun SettingsScreen(
                                 integrationTmdbFocusRequester = integrationTmdbFocusRequester,
                                 integrationMdbListFocusRequester = integrationMdbListFocusRequester,
                                 integrationAnimeSkipFocusRequester = integrationAnimeSkipFocusRequester,
-                                integrationCleanStreamFocusRequester = integrationCleanStreamFocusRequester,
                                 onNavigateToManageProfiles = onNavigateToManageProfiles,
                                 onNavigateToAddons = onNavigateToAddons,
                                 onNavigateToPlugins = onNavigateToPlugins,
@@ -821,7 +820,6 @@ fun SettingsScreen(
                         integrationTmdbFocusRequester = integrationTmdbFocusRequester,
                         integrationMdbListFocusRequester = integrationMdbListFocusRequester,
                         integrationAnimeSkipFocusRequester = integrationAnimeSkipFocusRequester,
-                        integrationCleanStreamFocusRequester = integrationCleanStreamFocusRequester,
                         onNavigateToManageProfiles = onNavigateToManageProfiles,
                         onNavigateToAddons = onNavigateToAddons,
                         onNavigateToPlugins = onNavigateToPlugins,
@@ -852,7 +850,6 @@ private fun SettingsDetailPane(
     integrationTmdbFocusRequester: FocusRequester,
     integrationMdbListFocusRequester: FocusRequester,
     integrationAnimeSkipFocusRequester: FocusRequester,
-    integrationCleanStreamFocusRequester: FocusRequester,
     onNavigateToManageProfiles: () -> Unit,
     onNavigateToAddons: () -> Unit,
     onNavigateToPlugins: () -> Unit,
@@ -951,7 +948,6 @@ private fun SettingsDetailPane(
             tmdbFocusRequester = integrationTmdbFocusRequester,
             mdbListFocusRequester = integrationMdbListFocusRequester,
             animeSkipFocusRequester = integrationAnimeSkipFocusRequester,
-            cleanStreamFocusRequester = integrationCleanStreamFocusRequester,
             autoFocusEnabled = allowDetailAutofocus
         )
         SettingsCategory.ABOUT -> AboutSettingsContent(
@@ -983,6 +979,9 @@ private fun SettingsDetailPane(
         )
         SettingsCategory.NUVIO_RESHAPED -> NuvioReshapedSettingsContent( // Nuvio RS hook
             initialFocusRequester = if (allowDetailAutofocus) contentFocusRequesters[SettingsCategory.NUVIO_RESHAPED] else null
+        )
+        SettingsCategory.NUVIO_CLEAN -> CleanStreamSettingsContent( // NuvioTv-Clean: its own section
+            initialFocusRequester = if (allowDetailAutofocus) contentFocusRequesters[SettingsCategory.NUVIO_CLEAN] else null
         )
         SettingsCategory.TRACKING -> TrackingSettingsContent(
             initialFocusRequester = if (allowDetailAutofocus) {
@@ -1076,7 +1075,6 @@ private fun IntegrationSettingsContent(
     tmdbFocusRequester: FocusRequester,
     mdbListFocusRequester: FocusRequester,
     animeSkipFocusRequester: FocusRequester,
-    cleanStreamFocusRequester: FocusRequester,
     autoFocusEnabled: Boolean
 ) {
     BackHandler(enabled = selectedSection != IntegrationSettingsSection.Hub) {
@@ -1089,7 +1087,6 @@ private fun IntegrationSettingsContent(
         IntegrationSettingsSection.Tmdb -> tmdbFocusRequester
         IntegrationSettingsSection.MdbList -> mdbListFocusRequester
         IntegrationSettingsSection.AnimeSkip -> animeSkipFocusRequester
-        IntegrationSettingsSection.CleanStream -> cleanStreamFocusRequester
     }
     val hubEntryTargetSection = hubReturnSection.takeIf {
         it != IntegrationSettingsSection.Hub
@@ -1103,7 +1100,6 @@ private fun IntegrationSettingsContent(
             IntegrationSettingsSection.Tmdb -> tmdbFocusRequester
             IntegrationSettingsSection.MdbList -> mdbListFocusRequester
             IntegrationSettingsSection.AnimeSkip -> animeSkipFocusRequester
-            IntegrationSettingsSection.CleanStream -> cleanStreamFocusRequester
         }
         runCatching { requester.requestFocus() }
     }
@@ -1182,19 +1178,6 @@ private fun IntegrationSettingsContent(
                                     }
                                 )
                             }
-                            item(key = "integration_hub_cleanstream") {
-                                SettingsActionRow(
-                                    title = "NuvioTv-Clean (CleanStream)",
-                                    subtitle = "Automatic skipping of unwanted scenes",
-                                    leadingIcon = Icons.Default.FastForward,
-                                    onClick = { onSelectSection(IntegrationSettingsSection.CleanStream) },
-                                    modifier = if (hubEntryTargetSection == IntegrationSettingsSection.CleanStream) {
-                                        Modifier.focusRequester(hubEntryFocusRequester)
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                            }
                         }
                         SettingsVerticalScrollIndicators(state = integrationHubState)
                     }
@@ -1226,11 +1209,6 @@ private fun IntegrationSettingsContent(
             )
         }
 
-        IntegrationSettingsSection.CleanStream -> {
-            CleanStreamSettingsContent(
-                initialFocusRequester = cleanStreamFocusRequester
-            )
-        }
     }
 }
 

@@ -243,7 +243,10 @@ fun SkipIntroButton(
 
 @Composable
 private fun getSkipLabel(type: String?, targetsPostCredits: Boolean): String =
-    if (type == CLEANSTREAM_UNDO_TYPE) {
+    if (type != null && type.startsWith(CLEANSTREAM_BUTTON_TYPE_PREFIX)) {
+        // NuvioTv-Clean: a confirmed scene, for profiles that skip with a button
+        "Skip ${type.removePrefix(CLEANSTREAM_BUTTON_TYPE_PREFIX)}"
+    } else if (type == CLEANSTREAM_UNDO_TYPE) {
         // NuvioTv-Clean: offered for a few seconds after an automatic skip
         "Wrong skip? Go back"
     } else if (type != null && type.startsWith(CLEANSTREAM_PROMPT_TYPE_PREFIX)) {

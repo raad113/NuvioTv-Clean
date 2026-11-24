@@ -14,6 +14,7 @@ internal enum class SettingsCategory(val group: SettingsRailGroup) {
     WATCH_PARTY(SettingsRailGroup.YOU),
     APPEARANCE(SettingsRailGroup.LOOK),
     LAYOUT(SettingsRailGroup.LOOK),
+    NUVIO_CLEAN(SettingsRailGroup.WATCH), // NuvioTv-Clean: scene skipping, first in "Watch"
     CONTENT_DISCOVERY(SettingsRailGroup.WATCH),
     PLAYBACK(SettingsRailGroup.WATCH),
     NUVIO_RESHAPED(SettingsRailGroup.WATCH), // Nuvio RS hook

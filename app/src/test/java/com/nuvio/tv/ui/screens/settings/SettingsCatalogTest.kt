@@ -21,6 +21,7 @@ class SettingsCatalogTest {
                 SettingsCategory.PROFILES,
                 SettingsCategory.APPEARANCE,
                 SettingsCategory.LAYOUT,
+                SettingsCategory.NUVIO_CLEAN,
                 SettingsCategory.CONTENT_DISCOVERY,
                 SettingsCategory.PLAYBACK,
                 SettingsCategory.NUVIO_RESHAPED,
@@ -99,6 +100,7 @@ class SettingsCatalogTest {
         assertEquals(
             listOf(
                 SettingsCategory.APPEARANCE,
+                SettingsCategory.NUVIO_CLEAN,
                 SettingsCategory.CONTENT_DISCOVERY,
                 SettingsCategory.INTEGRATION,
                 SettingsCategory.ADVANCED
@@ -116,7 +118,7 @@ class SettingsCatalogTest {
             isDebugBuild = false
         )
         assertFalse(categories.startsNewGroup(0))
-        assertTrue(categories.startsNewGroup(categories.indexOf(SettingsCategory.CONTENT_DISCOVERY)))
+        assertTrue(categories.startsNewGroup(categories.indexOf(SettingsCategory.NUVIO_CLEAN)))
     }
 
     @Test

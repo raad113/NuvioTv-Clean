@@ -40,6 +40,10 @@ private const val CLEAN_SHARE_DELAY_MS = 5_000L
 internal const val CLEANSTREAM_PROMPT_TYPE_PREFIX = "cleanstream:"
 private const val CLEANSTREAM_PROVIDER_PREFIX = "cleanstream:"
 
+/** Skip-interval type prefix for confirmed scenes shown as a button; the rest is the scene label. */
+internal const val CLEANSTREAM_BUTTON_TYPE_PREFIX = "cleanstream-skip:"
+private const val CLEANSTREAM_BUTTON_PROVIDER_PREFIX = "cleanstream-skip:"
+
 /**
  * Load the CleanStream skip list for the current movie or episode.
  * Safe to call repeatedly: it only downloads again when the title changes.
@@ -162,6 +166,8 @@ internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
     }
 
     if (active == null || active.channel == "audio") return
+    // This profile prefers a "Skip" button (see cleanStreamPendingIntervals)
+    if (config.skipWithButton) return
 
     val now = SystemClock.elapsedRealtime()
     if (now - cleanLastSeekAt < CLEAN_SEEK_GUARD_MS) return
@@ -245,7 +251,18 @@ internal fun PlayerRuntimeController.showCleanStreamNotice(text: String) {
 internal fun PlayerRuntimeController.cleanStreamPendingIntervals(): List<SkipInterval> {
     val config = CleanStreamSettings.current
     if (!config.enabled) return emptyList()
-    return cleanStreamUndoIntervals() + cleanPending.filterNot { isCleanSkipDisabled(it) }.mapNotNull { p ->
+    // Confirmed scenes as a "Skip <scene>" button, for profiles that prefer to press it
+    val buttons = if (config.skipWithButton) {
+        cleanSkips.filter { it.channel != "audio" && !isCleanSkipDisabled(it) }.map { skip ->
+            SkipInterval(
+                startTime = (skip.startMs + config.offsetMs - config.marginMs).coerceAtLeast(0L) / 1000.0,
+                endTime = (skip.endMs + config.offsetMs + config.marginMs) / 1000.0,
+                type = CLEANSTREAM_BUTTON_TYPE_PREFIX + skip.label,
+                provider = CLEANSTREAM_BUTTON_PROVIDER_PREFIX + skip.key,
+            )
+        }
+    } else emptyList()
+    return buttons + cleanStreamUndoIntervals() + cleanPending.filterNot { isCleanSkipDisabled(it) }.mapNotNull { p ->
         val id = p.ids.firstOrNull() ?: return@mapNotNull null
         SkipInterval(
             startTime = (p.startMs + config.offsetMs).coerceAtLeast(0L) / 1000.0,
