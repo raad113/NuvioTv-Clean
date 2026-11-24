@@ -104,6 +104,8 @@ jobs:
           if [ -z "$(ls dist)" ]; then
             cp "$(find "$SRC" -name '*.apk' | head -n 1)" "dist/NuvioTv-Clean-${{ github.run_number }}-any.apk"
           fi
+          # Fixed name, so .../releases/latest/download/NuvioTv-Clean.apk (and one Downloader code) always gets the newest build
+          cp "dist/NuvioTv-Clean-${{ github.run_number }}-any.apk" dist/NuvioTv-Clean.apk
           ls -l dist
 
       - uses: actions/upload-artifact@v4
@@ -118,5 +120,5 @@ jobs:
           gh release create "nuviotv-clean-${{ github.run_number }}" dist/*.apk \
             --target "$GITHUB_SHA" \
             --title "NuvioTv-Clean build ${{ github.run_number }}" \
-            --notes "Automatic build of commit ${GITHUB_SHA::7}. On Android TV, install NuvioTv-Clean-*-any.apk with the Downloader app (or the arm64/arm32 file for your TV)." \
+            --notes "Automatic build of commit ${GITHUB_SHA::7}. On Android TV, install NuvioTv-Clean.apk with the Downloader app (or the arm64/arm32 file for your TV)." \
             --latest
