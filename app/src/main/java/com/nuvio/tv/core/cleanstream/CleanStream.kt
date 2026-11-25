@@ -174,6 +174,16 @@ object CleanStreamSettings {
     private const val KEY_ENABLED = "enabled"
     private const val KEY_SERVER = "server_url"
     private const val KEY_EDITOR = "editor_key"
+    private const val KEY_APP_ID = "app_id"
+
+    /**
+     * A random ID made once for this app install, so the server can keep this
+     * TV's contributor record (how many of its marks were confirmed) when the
+     * internet address changes. It is random characters, nothing about the
+     * viewer or the TV.
+     */
+    @Volatile var appId: String = ""
+        private set
     private const val KEY_MARGIN = "margin_ms"
     private const val KEY_OFFSET = "offset_ms"
     private const val KEY_QUICK_SEVERITY = "quick_severity"
@@ -201,6 +211,9 @@ object CleanStreamSettings {
         if (prefs != null) return
         val p = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         prefs = p
+        appId = p.getString(KEY_APP_ID, null) ?: java.util.UUID.randomUUID().toString().replace("-", "").also {
+            p.edit().putString(KEY_APP_ID, it).apply()
+        }
         state.value = CleanStreamConfig(
             enabled = p.getBoolean(KEY_ENABLED, true),
             serverUrl = p.getString(KEY_SERVER, null)?.takeIf { it.isNotBlank() } ?: DEFAULT_SERVER_URL,
@@ -439,6 +452,10 @@ object CleanStreamClient {
             connection.readTimeout = TIMEOUT_MS
             connection.setRequestProperty("Accept", "application/json")
             connection.setRequestProperty("User-Agent", "NuvioTv-Clean")
+            // This install's random app ID: the contributor record follows the TV
+            CleanStreamSettings.appId.takeIf { it.isNotBlank() }?.let {
+                connection.setRequestProperty("X-CleanStream-Device", it)
+            }
             // A trusted editor's marks, votes and timing count straight away on the server
             CleanStreamSettings.current.editorKey.takeIf { it.isNotBlank() }?.let {
                 connection.setRequestProperty("X-CleanStream-Editor", it)

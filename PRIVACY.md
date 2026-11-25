@@ -1,6 +1,6 @@
 # Nuvio Clean privacy policy
 
-*Last updated: 24 November 2026*
+*Last updated: 25 November 2026*
 
 Nuvio Clean is a free, non-commercial, unofficial Android TV app based on the open-source Nuvio and Nuvio Reshaped apps. It adds family-friendly scene skipping. This policy explains what data the app and its skip server handle. The app has no ads, no analytics and no tracking, and nothing is ever sold.
 
@@ -13,7 +13,8 @@ Skip data comes from a CleanStream server run for this project (by default `fami
 **When you share or confirm a scene** (the ♥ button, a "Skip" button for an unconfirmed scene, "Wrong skip", or the skip timing panel), the server stores:
 - the start and end time of the scene, its category and your vote;
 - a *timing fingerprint* of your copy of the film: the start and end times of its subtitle lines. Only times are sent, never the subtitle text;
-- an anonymous code made from your connection's IP address and device type with a secret salt. It is used only to count each device's vote once and to stop abuse. The server cannot turn it back into your IP address.
+- a random app ID that the app creates once when it is installed (random characters, nothing about you or your TV). The server keeps only a salted hash of it, to remember how many of this TV's marks were confirmed, so trusted contributors stay trusted when their internet address changes;
+- an anonymous code made from your connection's IP address with a secret salt. It is used only to count each home's vote once, to stop one home from confirming its own marks, and to stop abuse. The server cannot turn it back into your IP address.
 
 Like most web servers, the server may keep short-lived technical logs (IP address, time, request) to protect itself from abuse. It does not build profiles and does not share data with anyone. Shared scenes and timing fingerprints are community data and are kept so that others can use them.
 
