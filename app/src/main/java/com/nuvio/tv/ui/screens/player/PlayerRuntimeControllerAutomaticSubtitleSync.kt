@@ -591,6 +591,9 @@ private fun PlayerRuntimeController.runMpvAutomaticSubtitleSync(
                 }
                 keepMpvPlayingIfNeeded(wasPlaying)
             }
+            // NuvioTv-Clean: skips and muting follow the same corrected timing (mpv)
+            cleanAutoSyncTimeline = if (withinTolerance) null
+            else Triple(currentStreamUrl, resolved.subtitleUrl, resolved.timeline)
 
             if (chosenSubtitle.url != selectedUrl) {
                 _uiState.update {
@@ -749,6 +752,9 @@ private fun PlayerRuntimeController.runLibassAutomaticSubtitleSync(
             if (!applied) {
                 return@launch
             }
+            // NuvioTv-Clean: skips and muting follow the same corrected timing (styled subtitles)
+            cleanAutoSyncTimeline = if (withinTolerance) null
+            else Triple(currentStreamUrl, resolved.subtitleUrl, resolved.timeline)
 
             if (chosenSubtitle.url != selectedUrl) {
                 _uiState.update {
