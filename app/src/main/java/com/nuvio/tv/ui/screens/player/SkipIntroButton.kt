@@ -201,11 +201,28 @@ fun SkipIntroButton(
                     isFocused = it.isFocused
                     if (it.isFocused) onFocused?.invoke()
                 },
-            colors = CardDefaults.colors(
+            // NuvioTv-Clean: its buttons are glass (translucent, light edge, mint when focused)
+            colors = if (isCleanStreamInterval) CardDefaults.colors(
+                containerColor = Color(0xFF2A313A).copy(alpha = 0.55f),
+                focusedContainerColor = Color(0xFF3EE0A8).copy(alpha = 0.45f),
+            ) else CardDefaults.colors(
                 containerColor = NuvioPrimitives.neutral875.copy(alpha = 0.85f),
                 focusedContainerColor = NuvioTheme.colors.Secondary
             ),
-            shape = CardDefaults.shape(shape = RoundedCornerShape(NuvioTheme.radii.md))
+            border = if (isCleanStreamInterval) CardDefaults.border(
+                border = androidx.tv.material3.Border(
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.30f)),
+                    shape = RoundedCornerShape(50),
+                ),
+                focusedBorder = androidx.tv.material3.Border(
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.White.copy(alpha = 0.80f)),
+                    shape = RoundedCornerShape(50),
+                ),
+            ) else CardDefaults.border(),
+            glow = if (isCleanStreamInterval) CardDefaults.glow(
+                focusedGlow = androidx.tv.material3.Glow(elevationColor = Color(0xFF3EE0A8), elevation = 12.dp),
+            ) else CardDefaults.glow(),
+            shape = CardDefaults.shape(shape = if (isCleanStreamInterval) RoundedCornerShape(50) else RoundedCornerShape(NuvioTheme.radii.md))
         ) {
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier.width(IntrinsicSize.Max)
@@ -217,12 +234,12 @@ fun SkipIntroButton(
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = null,
-                        tint = if (isFocused) NuvioTheme.colors.OnSecondary else Color.White,
+                        tint = if (isFocused && !isCleanStreamInterval) NuvioTheme.colors.OnSecondary else Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
                         text = getSkipLabel(lastType, targetsPostCredits),
-                        color = if (isFocused) NuvioTheme.colors.OnSecondary else Color.White,
+                        color = if (isFocused && !isCleanStreamInterval) NuvioTheme.colors.OnSecondary else Color.White,
                         fontSize = 14.sp,
                         modifier = Modifier.padding(start = NuvioTheme.spacing.sm)
                     )

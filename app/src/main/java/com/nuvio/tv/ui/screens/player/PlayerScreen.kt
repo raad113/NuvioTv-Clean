@@ -35,6 +35,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -1720,12 +1721,19 @@ fun PlayerScreen(
             AspectRatioIndicator(text = uiState.aspectRatioIndicatorText)
         }
 
-        // NuvioTv-Clean: "Was this scene right?" after an unconfirmed scene played
+        // NuvioTv-Clean: questions about an unconfirmed scene (while it plays, or after it played).
+        // When the panel goes away by itself (scene over), give focus back to the player.
+        val cleanPanelShown = uiState.cleanReview != null
+        var cleanPanelWasShown by remember { mutableStateOf(false) }
+        LaunchedEffect(cleanPanelShown) {
+            if (!cleanPanelShown && cleanPanelWasShown) runCatching { containerFocusRequester.requestFocus() }
+            cleanPanelWasShown = cleanPanelShown
+        }
         uiState.cleanReview?.let { review ->
             CleanStreamReviewPanel(
                 prompt = review,
-                onAnswer = { right ->
-                    viewModel.onCleanStreamReview(right)
+                onAnswer = { answer ->
+                    viewModel.onCleanStreamReview(answer)
                     runCatching { containerFocusRequester.requestFocus() }
                 },
                 modifier = Modifier
@@ -1749,9 +1757,10 @@ fun PlayerScreen(
             visible = uiState.showStreamSourceIndicator,
             enter = fadeIn(animationSpec = tween(NuvioMotion.tokens.durations.fast)),
             exit = fadeOut(animationSpec = tween(NuvioMotion.tokens.durations.fast)),
+            // NuvioTv-Clean: messages in the top-left corner, out of the way of the picture
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 128.dp)
+                .align(Alignment.TopStart)
+                .padding(top = 32.dp, start = 40.dp)
                 .then(playerControlsDim)
         ) {
             StreamSourceIndicator(text = uiState.streamSourceIndicatorText)
@@ -3892,20 +3901,24 @@ private fun AspectRatioIndicator(text: String) {
 
 @Composable
 private fun StreamSourceIndicator(text: String) {
+    // NuvioTv-Clean: dark glass, up to two lines so longer messages are not cut
+    val shape = RoundedCornerShape(16.dp)
     Row(
         modifier = Modifier
+            .widthIn(max = 620.dp)
             .background(
-                color = Color.Black.copy(alpha = 0.82f),
-                shape = RoundedCornerShape(20.dp)
+                brush = androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xCC2A313A), Color(0xB3161A20))),
+                shape = shape
             )
-            .padding(horizontal = 14.dp, vertical = NuvioTheme.spacing.sm),
+            .border(1.dp, Color.White.copy(alpha = 0.22f), shape)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
             color = Color.White,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
     }

@@ -99,6 +99,8 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanDisabledIds.clear()
     cleanUndo = null
     cleanReviewWatched.clear()
+    cleanAskDone.clear()
+    cleanAskAnswered.clear()
     synchronized(cleanDiagLines) { cleanDiagLines.clear() }
     cleanReviewed.clear()
     cleanReviewLastPos = null
@@ -186,6 +188,7 @@ private fun PlayerRuntimeController.applyCleanStreamSkipsUnsafe(positionMs: Long
         releaseCleanStreamMute()
         return
     }
+    if (config.skipWithButton) trackCleanStreamAsk(positionMs, config.offsetMs)
     if (config.reviewScenes) trackCleanStreamReview(positionMs, config.offsetMs)
     // Timing adjustment and safety margin from settings
     val startShift = config.offsetMs - config.marginMs
@@ -401,7 +404,8 @@ private fun PlayerRuntimeController.cleanStreamPendingIntervalsUnsafe(): List<Sk
     } else emptyList()
     // Unconfirmed scenes get a "Skip (unconfirmed)" button only on profiles that skip
     // with a button; other profiles skip them by themselves
-    val prompts = if (config.skipWithButton) cleanPending.filter { it.channel != "audio" && !isCleanSkipDisabled(it) } else emptyList()
+    // (now asked with the Skip / Confirm / Not a scene panel, see trackCleanStreamAsk)
+    val prompts = emptyList<CleanSkip>()
     return buttons + cleanStreamUndoIntervals() + prompts.mapNotNull { p ->
         val id = p.ids.firstOrNull() ?: return@mapNotNull null
         SkipInterval(

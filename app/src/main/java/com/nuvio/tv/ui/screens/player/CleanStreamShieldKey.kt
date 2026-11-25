@@ -209,21 +209,25 @@ internal fun CleanStreamMarkingTag(
     }
 }
 
-/** "Was this scene marked right?" on dark glass with two glass buttons; Back closes it without answering. */
+/**
+ * Questions about an unconfirmed scene on dark glass with glass buttons:
+ * while it plays, "Skip / Confirm & skip / Not a scene"; after it played (review
+ * setting), "Yes, skip it for everyone / Not a scene". Back closes it.
+ */
 @Composable
 internal fun CleanStreamReviewPanel(
     prompt: CleanStreamReviewPrompt,
-    onAnswer: (Boolean?) -> Unit,
+    onAnswer: (CleanStreamAnswer) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val yesFocus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
-    androidx.compose.runtime.LaunchedEffect(prompt) { runCatching { yesFocus.requestFocus() } }
+    val firstFocus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+    androidx.compose.runtime.LaunchedEffect(prompt.segmentId, prompt.ask) { runCatching { firstFocus.requestFocus() } }
     val shape = RoundedCornerShape(20.dp)
     androidx.compose.foundation.layout.Column(
         modifier = modifier
             .glassPanel(shape)
             .padding(horizontal = 22.dp, vertical = 18.dp)
-            .closeOnBack { onAnswer(null) },
+            .closeOnBack { onAnswer(CleanStreamAnswer.DISMISS) },
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -233,20 +237,41 @@ internal fun CleanStreamReviewPanel(
                 tint = Mint,
                 modifier = Modifier.size(20.dp),
             )
-            Text(text = "Was this scene marked right?", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = if (prompt.ask) "Unconfirmed scene: ${prompt.label}" else "Was this scene marked right?",
+                color = Color.White,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+            )
         }
-        Text(text = "Marked as: ${prompt.label}", color = Color.White.copy(alpha = 0.75f), fontSize = 14.sp)
+        Text(
+            text = if (prompt.ask) "Someone marked this scene. Skip it, confirm it, or say it is not a scene."
+            else "Marked as: ${prompt.label}",
+            color = Color.White.copy(alpha = 0.75f),
+            fontSize = 14.sp,
+        )
         Row(
             modifier = Modifier.padding(top = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            GlassButton(
-                text = "✓  Yes, skip it for everyone",
-                onClick = { onAnswer(true) },
-                tint = Mint,
-                modifier = Modifier.focusRequester(yesFocus),
-            )
-            GlassButton(text = "✗  Not a scene", onClick = { onAnswer(false) }, tint = Color.White)
+            if (prompt.ask) {
+                GlassButton(
+                    text = "⏭  Skip",
+                    onClick = { onAnswer(CleanStreamAnswer.SKIP) },
+                    tint = Color.White,
+                    modifier = Modifier.focusRequester(firstFocus),
+                )
+                GlassButton(text = "✓  Confirm & skip", onClick = { onAnswer(CleanStreamAnswer.CONFIRM) }, tint = Mint)
+                GlassButton(text = "✗  Not a scene", onClick = { onAnswer(CleanStreamAnswer.NOT_A_SCENE) }, tint = Color(0xFFFF6B6B))
+            } else {
+                GlassButton(
+                    text = "✓  Yes, skip it for everyone",
+                    onClick = { onAnswer(CleanStreamAnswer.CONFIRM) },
+                    tint = Mint,
+                    modifier = Modifier.focusRequester(firstFocus),
+                )
+                GlassButton(text = "✗  Not a scene", onClick = { onAnswer(CleanStreamAnswer.NOT_A_SCENE) }, tint = Color(0xFFFF6B6B))
+            }
         }
     }
 }
