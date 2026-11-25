@@ -10,7 +10,7 @@ Skip data comes from a CleanStream server run for this project (by default `fami
 
 **When you watch something**, the app asks the server for the skips of that title. The request contains the title's IMDb or TMDB id and your filter settings. To show poster tags, it also sends the ids of the titles on screen.
 
-**When you share or confirm a scene** (the ♥ button, a "Skip" button for an unconfirmed scene, "Wrong skip", or the skip timing panel), the server stores:
+**When you share or confirm a scene** (the shield button, a "Skip" button for an unconfirmed scene, "Wrong skip", or the timer button for skip timing), the server stores:
 - the start and end time of the scene, its category and your vote;
 - a *timing fingerprint* of your copy of the film: the start and end times of its subtitle lines. Only times are sent, never the subtitle text;
 - a random app ID that the app creates once when it is installed (random characters, nothing about you or your TV). The server keeps only a salted hash of it, to remember how many of this TV's marks were confirmed, so trusted contributors stay trusted when their internet address changes;
