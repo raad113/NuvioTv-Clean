@@ -26,9 +26,15 @@ object CrashRecorder {
 
     @Volatile private var appContext: Context? = null
 
+    private const val SENT_PREFS = "clean_crash_reports"
+    private const val KEY_SENT = "sent_files"
+
     /** Call once from Application.onCreate, after other crash handlers are set up. */
     fun install(context: Context) {
         appContext = context.applicationContext
+        CleanStreamSettings.init(context)
+        // Reports from a crash are sent on the next start (a crashing app cannot send reliably)
+        sendPendingInBackground()
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
             runCatching { write("crash", "Crash on thread ${thread.name}", error) }
@@ -37,10 +43,38 @@ object CrashRecorder {
         }
     }
 
-    /** Record an error Nuvio Clean caught (the app keeps running). */
+    /** Record an error Nuvio Clean caught (the app keeps running), and send it if the viewer chose to. */
     fun recordHandled(where: String, error: Throwable) {
         Log.w(TAG, "Nuvio Clean error in $where", error)
         runCatching { write("error", "Handled error in $where", error) }
+        sendPendingInBackground()
+    }
+
+    /**
+     * Send reports not sent yet, when "Send crash reports" is on. Each report
+     * is sent once; nothing is sent when the setting is off.
+     */
+    fun sendPendingInBackground() {
+        val context = appContext ?: return
+        if (!CleanStreamSettings.current.sendCrashReports) return
+        Thread {
+            runCatching {
+                val prefs = context.getSharedPreferences(SENT_PREFS, Context.MODE_PRIVATE)
+                val sent = prefs.getStringSet(KEY_SENT, emptySet()).orEmpty().toMutableSet()
+                val dir = File(context.cacheDir, "autosync-debug")
+                val reports = dir.listFiles { f -> f.name.startsWith("autosync-crash-") || f.name.startsWith("autosync-error-") }
+                    .orEmpty()
+                    .filter { it.name !in sent }
+                    .sortedBy { it.name }
+                for (file in reports) {
+                    val kind = if (file.name.startsWith("autosync-crash-")) "crash" else "error"
+                    if (CleanStreamClient.sendReportNow(kind, file.readText())) sent += file.name else break
+                }
+                // Forget names of reports that no longer exist
+                val existing = dir.list()?.toSet().orEmpty()
+                prefs.edit().putStringSet(KEY_SENT, sent.filter { it in existing }.toSet()).apply()
+            }.onFailure { Log.w(TAG, "Could not send reports: ${it.message}") }
+        }.apply { name = "clean-crash-reports"; isDaemon = true }.start()
     }
 
     private fun write(kind: String, title: String, error: Throwable) {

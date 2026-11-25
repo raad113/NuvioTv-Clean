@@ -127,6 +127,18 @@ fun CleanStreamSettingsContent(
                             modifier = Modifier
                         )
                     }
+                    item(key = "cleanstream_crash_reports") {
+                        SettingsToggleRow(
+                            title = "Send crash reports",
+                            subtitle = "If the app crashes or Nuvio Clean hits an error, send a short report (app version, TV model, technical details) to the CleanStream server so it can be fixed. Web addresses are removed first",
+                            checked = config.sendCrashReports,
+                            onToggle = {
+                                CleanStreamSettings.setSendCrashReports(!config.sendCrashReports)
+                                if (!config.sendCrashReports) com.nuvio.tv.core.cleanstream.CrashRecorder.sendPendingInBackground()
+                            },
+                            modifier = Modifier
+                        )
+                    }
                     item(key = "cleanstream_subtitle_mute") {
                         SettingsToggleRow(
                             title = "Mute bad language using subtitles (this profile)",

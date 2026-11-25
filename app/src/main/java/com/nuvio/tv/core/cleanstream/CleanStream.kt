@@ -67,6 +67,8 @@ data class CleanStreamConfig(
     val skipWithButton: Boolean = true,
     /** This TV's trusted-editor key (created by the server owner on /admin), or empty. */
     val editorKey: String = "",
+    /** Send crash and error reports to the CleanStream server (the viewer's choice, off by default). */
+    val sendCrashReports: Boolean = false,
 )
 
 /** Choices offered in settings, cycled by pressing the row. */
@@ -175,6 +177,7 @@ object CleanStreamSettings {
     private const val KEY_SERVER = "server_url"
     private const val KEY_EDITOR = "editor_key"
     private const val KEY_APP_ID = "app_id"
+    private const val KEY_SEND_REPORTS = "send_crash_reports"
 
     /**
      * A random ID made once for this app install, so the server can keep this
@@ -227,7 +230,13 @@ object CleanStreamSettings {
             customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + activeProfileId, null) ?: "",
             skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, true),
             editorKey = p.getString(KEY_EDITOR, null) ?: "",
+            sendCrashReports = p.getBoolean(KEY_SEND_REPORTS, false),
         )
+    }
+
+    fun setSendCrashReports(send: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_SEND_REPORTS, send)?.apply()
+        state.value = state.value.copy(sendCrashReports = send)
     }
 
     /** Save (or clear, with "") this TV's trusted-editor key. */
@@ -398,6 +407,17 @@ object CleanStreamClient {
             val payload = JSONObject().put("offsetMs", offsetMs).put("ref", ref.toJson()).toString()
             request("POST", "${serverUrl.trimEnd('/')}/api/timing/$id", payload) != null
         }
+
+    /**
+     * Send a crash or error report (blocking: call from a background thread).
+     * Web addresses are removed first, since error messages can contain
+     * stream links with personal tokens. True when the server accepted it.
+     */
+    fun sendReportNow(kind: String, text: String): Boolean {
+        val clean = text.replace(Regex("https?://\\S+"), "[address removed]").take(20_000)
+        val payload = JSONObject().put("kind", kind).put("text", clean).toString()
+        return request("POST", "${CleanStreamSettings.current.serverUrl.trimEnd('/')}/api/reports", payload) != null
+    }
 
     private val refCache = java.util.concurrent.ConcurrentHashMap<String, TimingRef>()
 
