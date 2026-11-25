@@ -600,6 +600,10 @@ class PlayerRuntimeController(
     internal var cleanCorrections: List<com.nuvio.tv.core.cleanstream.TimingCorrection> = emptyList()
     internal var cleanMatchedCorrectionMs: Long? = null
     internal var cleanTimingAtOpen: Long? = null
+    // The AutoSync correction applied to a subtitle (stream URL, subtitle URL, timeline),
+    // so strong-language muting follows the retimed subtitle, not the file's own times
+    internal var cleanAutoSyncTimeline: Triple<String, String, com.nuvio.tv.ui.screens.player.autosync.AutoSyncTimelineRetimeResult>? = null
+    internal var cleanPassthroughNoticeShown: Boolean = false
     internal var lastActiveSkipType: String? = null
     internal var autoSubtitleSelected: Boolean = false
     internal var isUserExplicitSubtitleSelection: Boolean = false

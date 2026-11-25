@@ -168,6 +168,11 @@ internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
         releaseCleanStreamMute()
     }
     if (muteTarget != null && cleanMutedKey == null) {
+        // With audio passed straight to a soundbar/receiver the app cannot change the volume
+        if (!isUsingMpvEngine() && isAudioOutputBypassing && !cleanPassthroughNoticeShown) {
+            cleanPassthroughNoticeShown = true
+            showCleanStreamNotice("Muting doesn't work while audio is passed through to your sound system. Turn off passthrough in audio settings to use it.")
+        }
         setCleanStreamMuted(true)
         cleanMutedKey = muteKey
         // Subtitle mutes are short and frequent, so they stay silent
@@ -208,12 +213,23 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
     }
     val state = _uiState.value
     val subtitle = state.selectedAddonSubtitle ?: pickMuteSubtitle(state.addonSubtitles) ?: return
-    val key = "${subtitle.url}|${config.customMuteWords}"
+    // When AutoSync retimed this subtitle, mute at the corrected times
+    val retime = cleanAutoSyncTimeline
+        ?.takeIf { (stream, url, _) -> stream == currentStreamUrl && url == subtitle.url }
+        ?.third
+    val key = "${subtitle.url}|${config.customMuteWords}|${retime?.let { System.identityHashCode(it) }}"
     if (key == cleanSubtitleSourceKey) return
     cleanSubtitleSourceKey = key
     cleanSubtitleMutes = emptyList()
     scope.launch {
-        val mutes = SubtitleProfanity.loadMutes(subtitle.url, subtitle.headers, config.customMuteWords)
+        val raw = SubtitleProfanity.loadMutes(subtitle.url, subtitle.headers, config.customMuteWords)
+        val mutes = if (retime == null) raw else {
+            val mapper = com.nuvio.tv.ui.screens.player.autosync.AutoSyncTimelineTimeMapper(retime)
+            raw.map { m ->
+                val start = mapper.mapStartMs(m.startMs)
+                m.copy(startMs = start, endMs = mapper.mapEndMs(m.endMs).coerceAtLeast(start + 200))
+            }
+        }
         if (cleanSubtitleSourceKey == key) cleanSubtitleMutes = mutes
     }
 }

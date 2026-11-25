@@ -411,6 +411,10 @@ internal fun PlayerRuntimeController.maybeRunAutomaticSubtitleSync(
                 return@launch
             }
 
+            // NuvioTv-Clean: strong-language muting uses the same corrected timing
+            cleanAutoSyncTimeline = if (withinToleranceMs != null) null
+            else Triple(currentStreamUrl, resolved.subtitleUrl, resolved.timeline)
+
             if (chosenSubtitle.url != selectedUrl) {
                 _uiState.update {
                     it.copy(
