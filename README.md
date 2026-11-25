@@ -28,7 +28,9 @@ The code always gets the newest build, and new builds install over the old one w
 
 **Subtitle muting per profile.** Each profile can mute any line whose subtitle contains English or Arabic swear words, plus words it adds.
 
-**One button to share.** Press ♥ in the player when a scene starts and again when it ends. That's all.
+**One button to share.** Press the shield button in the player when a scene starts and again when it ends. That's all.
+
+**Fix the timing for your copy.** If skips come early or late on your version of a film, press the timer button next to the shield and move them. Others with the same version get your fix once a second viewer agrees.
 
 **Safe from bad timings.** A scene shared by one person shows as an "unconfirmed" skip button until a second viewer confirms it, so nobody can make you miss part of a film.
 
@@ -76,7 +78,7 @@ https://github.com/raad113/NuvioTv-Clean/releases/latest/download/NuvioTv-Clean.
 
 **كتم الشتائم من الترجمة لكل ملف شخصي.** يمكن لكل ملف شخصي أن يكتم أي سطر تحتوي ترجمته على شتائم بالعربية أو الإنجليزية، إضافة إلى كلمات يختارها بنفسه.
 
-**زر واحد للمشاركة.** اضغط ♥ في المشغّل عند بداية المشهد، ثم اضغطه مرة أخرى عند نهايته. هذا كل شيء.
+**زر واحد للمشاركة.** اضغط زر الدرع في المشغّل عند بداية المشهد، ثم اضغطه مرة أخرى عند نهايته. هذا كل شيء.
 
 **حماية من التوقيتات الخاطئة.** المشهد الذي يشاركه شخص واحد يظهر كزر تخطٍّ "غير مؤكد" حتى يؤكده مشاهد آخر، فلا يستطيع أحد أن يجعلك تفوّت جزءًا من الفيلم.
 

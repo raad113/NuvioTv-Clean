@@ -230,7 +230,7 @@ internal fun PlayerRuntimeController.onCleanStreamUndoPressed(interval: com.nuvi
             }
         }
     }
-    showCleanStreamNotice("Reported. If the scene comes, mark it with ♥ at its start and end.")
+    showCleanStreamNotice("Reported. If the scene comes, mark it with the shield button at its start and end.")
     return true
 }
 
@@ -239,7 +239,7 @@ internal fun PlayerRuntimeController.isCleanSkipDisabled(skip: CleanSkip): Boole
     skip.ids.ifEmpty { listOf(skip.key) }.any { it in cleanDisabledIds }
 
 /* ------------------------------------------------------------------ */
-/* "Skip timing for this film" (long press on ♥)                       */
+/* "Skip timing for this film" (timer button, or long press on the shield)                       */
 /* ------------------------------------------------------------------ */
 
 /** Largest adjustment offered in the panel. */

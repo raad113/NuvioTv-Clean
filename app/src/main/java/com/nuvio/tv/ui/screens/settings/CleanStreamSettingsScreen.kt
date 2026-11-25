@@ -140,8 +140,8 @@ fun CleanStreamSettingsContent(
                     item(key = "cleanstream_quick_severity") {
                         val labels = mapOf("low" to "Mild (kissing)", "medium" to "Moderate", "high" to "Strong (explicit)")
                         SettingsActionRow(
-                            title = "♥ button marks scenes as",
-                            subtitle = "In the player, press ♥ when a kissing or sexual scene starts and again when it ends to share it",
+                            title = "Shield button marks scenes as",
+                            subtitle = "In the player, press the shield button when a kissing or sexual scene starts and again when it ends to share it",
                             value = labels[config.quickSeverity] ?: "Moderate",
                             onClick = {
                                 val order = listOf("low", "medium", "high")

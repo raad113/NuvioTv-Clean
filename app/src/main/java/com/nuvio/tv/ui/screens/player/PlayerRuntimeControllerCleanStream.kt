@@ -150,6 +150,15 @@ private fun PlayerRuntimeController.cleanStreamContentId(id: String?, season: In
  * Called on each progress tick with the current position in milliseconds.
  */
 internal fun PlayerRuntimeController.applyCleanStreamSkips(positionMs: Long) {
+    // Runs inside the player's progress loop: an error here must never close the app
+    try {
+        applyCleanStreamSkipsUnsafe(positionMs)
+    } catch (error: Exception) {
+        com.nuvio.tv.core.cleanstream.CrashRecorder.recordHandled("cleanstream tick", error)
+    }
+}
+
+private fun PlayerRuntimeController.applyCleanStreamSkipsUnsafe(positionMs: Long) {
     val config = CleanStreamSettings.current
     refreshCleanStreamSubtitleMutes(config)
     maybeAlignCleanStreamSkips()
@@ -293,7 +302,15 @@ internal fun PlayerRuntimeController.showCleanStreamNotice(text: String) {
  * Nuvio never auto-skips, so the viewer sees "Skip <scene> (unconfirmed)"
  * and decides with the remote. Pressing it confirms the scene.
  */
-internal fun PlayerRuntimeController.cleanStreamPendingIntervals(): List<SkipInterval> {
+internal fun PlayerRuntimeController.cleanStreamPendingIntervals(): List<SkipInterval> =
+    try {
+        cleanStreamPendingIntervalsUnsafe()
+    } catch (error: Exception) {
+        com.nuvio.tv.core.cleanstream.CrashRecorder.recordHandled("cleanstream intervals", error)
+        emptyList()
+    }
+
+private fun PlayerRuntimeController.cleanStreamPendingIntervalsUnsafe(): List<SkipInterval> {
     val config = CleanStreamSettings.current
     if (!config.enabled) return emptyList()
     // Confirmed scenes as a "Skip <scene>" button, for profiles that prefer to press it
@@ -369,14 +386,14 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
     if (start == null) {
         cleanMarkStartMs = position
         _uiState.update { it.copy(cleanStreamMarking = true) }
-        showCleanStreamNotice("Scene start marked. Press ♥ again when it ends.")
+        showCleanStreamNotice("Scene start marked. Press the shield again when it ends.")
         return
     }
 
     cleanMarkStartMs = null
     _uiState.update { it.copy(cleanStreamMarking = false) }
     if (position - start < 1_000L) {
-        showCleanStreamNotice("Too short, nothing saved. Press ♥ at the start and again at the end.")
+        showCleanStreamNotice("Too short, nothing saved. Press the shield at the start and again at the end.")
         return
     }
 
@@ -384,7 +401,7 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
     // Store times as they are in the reference copy (remove the local timing adjustment)
     val startMs = (start - config.offsetMs).coerceAtLeast(0L)
     val endMs = (position - config.offsetMs).coerceAtLeast(startMs + 1_000L)
-    showCleanStreamNotice("Sharing in 5 seconds. Press ♥ to cancel.")
+    showCleanStreamNotice("Sharing in 5 seconds. Press the shield to cancel.")
     cleanShareJob = launchCleanStream("cleanstream") {
         delay(CLEAN_SHARE_DELAY_MS)
         // This copy's fingerprint, so other copies of the film can line the scene up

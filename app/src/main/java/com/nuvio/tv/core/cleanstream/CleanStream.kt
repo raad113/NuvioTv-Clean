@@ -57,7 +57,7 @@ data class CleanStreamConfig(
     val marginMs: Long = 1_000L,
     /** Moves every skip later (positive) or earlier (negative), for a differently timed copy. */
     val offsetMs: Long = 0L,
-    /** Severity given to scenes marked with the ♥ button: "low", "medium" or "high". */
+    /** Severity given to scenes marked with the shield button: "low", "medium" or "high". */
     val quickSeverity: String = "medium",
     /** Per profile: mute strong language found in the subtitles. */
     val subtitleMuteEnabled: Boolean = false,

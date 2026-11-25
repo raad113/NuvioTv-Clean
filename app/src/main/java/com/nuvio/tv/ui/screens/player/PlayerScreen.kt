@@ -60,6 +60,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AvTimer
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -2172,7 +2174,7 @@ fun PlayerScreen(
 
         com.nuvio.tv.ui.reshaped.livetv.LiveTvPlayerOverlay(liveTvPlayer, uiState) // Nuvio RS hook: Live TV
 
-        // NuvioTv-Clean: "Skip timing for this film" (long press on ♥)
+        // NuvioTv-Clean: "Skip timing for this film" (timer button, or long press on the shield)
         if (uiState.cleanTimingPanelVisible) {
             CleanStreamTimingDialog(
                 offsetMs = uiState.cleanTimingOffsetMs,
@@ -3051,15 +3053,25 @@ private fun PlayerControlsOverlay(
                     // NuvioTv-Clean: press at the start and the end of a kissing or
                     // sexual scene to share it (pink while a scene is being timed)
                     ControlButton(
-                        icon = Icons.Default.Favorite,
+                        icon = androidx.compose.material.icons.Icons.Filled.Shield,
                         contentDescription = if (cleanStreamMarking) "Mark the end of the scene" else "Mark a scene to skip",
                         onClick = onCleanStreamMark,
                         upFocusRequester = progressUpTarget,
                         onDownKey = onHideControls,
                         onFocused = onResetHideTimer,
                         contentColor = if (cleanStreamMarking) Color(0xFFFF4D8D) else Color.White,
-                        // Long press: move this film's skips earlier or later
+                        // Long press still opens the timing panel too
                         onLongClick = onCleanStreamTiming
+                    )
+
+                    // NuvioTv-Clean: move this film's skips earlier or later
+                    ControlButton(
+                        icon = androidx.compose.material.icons.Icons.Filled.AvTimer,
+                        contentDescription = "Skip timing for this film",
+                        onClick = onCleanStreamTiming,
+                        upFocusRequester = progressUpTarget,
+                        onDownKey = onHideControls,
+                        onFocused = onResetHideTimer
                     )
 
                     if (showNextEpisodeButton) {

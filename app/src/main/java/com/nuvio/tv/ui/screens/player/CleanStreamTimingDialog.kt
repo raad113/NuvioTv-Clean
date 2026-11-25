@@ -26,7 +26,7 @@ import com.nuvio.tv.ui.theme.NuvioTheme
 import kotlin.math.abs
 
 /**
- * NuvioTv-Clean: "Skip timing for this film", opened with a long press on ♥.
+ * NuvioTv-Clean: "Skip timing for this film", opened with the timer button next to the shield (or a long press on the shield).
  * Moves every skip of the film earlier or later on this TV; the change applies
  * straight away so the viewer can check it, and is shared when the panel closes.
  */
