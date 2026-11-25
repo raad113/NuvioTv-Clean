@@ -99,6 +99,7 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanDisabledIds.clear()
     cleanUndo = null
     cleanReviewWatched.clear()
+    synchronized(cleanDiagLines) { cleanDiagLines.clear() }
     cleanReviewed.clear()
     cleanReviewLastPos = null
     cleanReviewJob?.cancel()
@@ -292,6 +293,7 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
             }
         }
         if (cleanSubtitleSourceKey != key) return@launchCleanStream
+        cleanDiag("Mutes: ${mutes.size} from the shown subtitle${shown?.let { " (${it.lang}, synced: ${sync != null}, delay $shownDelayMs ms)" } ?: " (none shown)"}")
         cleanSubtitleMutes = mutes.sortedBy { it.startMs }
 
         // 2. Words in the English subtitle, lined up with this copy. Its file may be
@@ -305,6 +307,7 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
                 val englishRef = cues.map { it.startMs to it.endMs }.sortedBy { it.first }.distinct()
                     .takeIf { it.size >= com.nuvio.tv.core.cleanstream.TimingRef.MIN_CUES }
                     ?.let { com.nuvio.tv.core.cleanstream.TimingRef("subtitle", null, it) }
+                cleanDiag("Mutes: ${found.size} words in the English subtitle (${english.lang}); this copy ${local?.let { "${it.kind}, ${it.cues.size} lines" } ?: "has no fingerprint"}")
                 if (local == null || englishRef == null) {
                     if (!cleanMuteNoticeShown) {
                         cleanMuteNoticeShown = true
@@ -324,6 +327,7 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
                     }
                     // Keep the watched subtitle's own mutes; add English ones that are not already covered
                     val extra = placed.filter { e -> mutes.none { it.startMs - 1_000 <= e.endMs && e.startMs <= it.endMs + 1_000 } }
+                    cleanDiag("Mutes: ${placed.size} of ${found.size} English words lined up (first at ${placed.take(3).joinToString { formatDiagTime(it.startMs) }}), ${extra.size} added")
                     mutes += extra
                 }
             }

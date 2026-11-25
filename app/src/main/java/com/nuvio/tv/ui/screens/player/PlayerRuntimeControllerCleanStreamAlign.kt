@@ -198,6 +198,8 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
             }
             val cues = cleanAnchorCues
             val matches = withContext(AutomaticSubtitleSync.autoSyncDispatcher) { CleanStreamAnchors.match(anchors, cues) }
+            cleanDiag("Dialogue: English subtitle ${english.lang}, ${cues.size} lines, ${anchors.size} words in the data, ${matches.pairs.size} possible matches" +
+                if (english.url == selected?.url) " (it is the shown subtitle)" else "")
             val englishRef = cues.map { it.startMs to it.endMs }.sortedBy { it.first }.distinct()
                 .takeIf { it.size >= TimingRef.MIN_CUES }
                 ?.let { TimingRef("subtitle", null, it) }
@@ -269,6 +271,15 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
 
         val aligned = raw.map { line(it) }
         val alignedPending = pendingRaw.map { line(it) }
+        cleanDiag("Align: this copy ${local?.let { "${it.kind}, ${it.cues.size} lines" } ?: "no fingerprint"}, ${refs.size} marked-copy fingerprints, manual adjustment ${manualOffset ?: "none"}")
+        (raw + pendingRaw).zip(aligned + alignedPending).take(40).forEach { (r, a2) ->
+            val how = when {
+                r.refId != null && refs[r.refId] == null -> "fingerprint not downloaded"
+                r.refId != null -> "by fingerprint"
+                else -> "no fingerprint"
+            }
+            cleanDiag("  ${r.label}: ${formatDiagTime(r.startMs)} -> ${formatDiagTime(a2.startMs)} (moved ${(a2.startMs - r.startMs) / 100 / 10.0} s, $how)")
+        }
         // Ignore the result if the title (or its skip list) changed meanwhile
         if (cleanSkipsKey != requestKey || cleanSkipsRaw !== raw || cleanPendingRaw !== pendingRaw) return@launchCleanStream
         cleanSkips = aligned

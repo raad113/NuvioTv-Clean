@@ -37,6 +37,7 @@ internal fun CleanStreamTimingDialog(
     onReset: () -> Unit,
     onDismiss: () -> Unit,
     brightness: Float = 1f,
+    onSendReport: () -> Unit = {},
 ) {
     val firstFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
@@ -80,6 +81,10 @@ internal fun CleanStreamTimingDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm)) {
                     Button(onClick = onReset) { Text("Reset") }
                     Button(onClick = onDismiss) { Text("Done") }
+                }
+                // NuvioTv-Clean: send what the app did with this film's timing, to find timing problems
+                Button(onClick = onSendReport) { Text("Send sync report") }
+                Row {
                 }
             }
         }

@@ -602,6 +602,8 @@ class PlayerRuntimeController(
     // Dialogue quoted by skips without a fingerprint, and the English subtitle lines matched against it
     // The title the start-of-playback notice was last shown for
     internal var cleanStartNoticeKey: String? = null
+    // What Nuvio Clean did with this film's timing, for the "Send sync report" button
+    internal val cleanDiagLines: java.util.ArrayDeque<String> = java.util.ArrayDeque()
     // "Review unconfirmed scenes": how long each was watched, which were asked about
     internal val cleanReviewWatched: MutableMap<String, Long> = mutableMapOf()
     internal val cleanReviewed: MutableSet<String> = mutableSetOf()

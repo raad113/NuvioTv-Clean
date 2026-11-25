@@ -2212,7 +2212,8 @@ fun PlayerScreen(
                 onAdjust = { viewModel.onCleanStreamTimingAdjust(it) },
                 onReset = { viewModel.onCleanStreamTimingReset() },
                 onDismiss = { viewModel.onCleanStreamTimingClose() },
-                brightness = uiState.playerControlsBrightness
+                brightness = uiState.playerControlsBrightness,
+                onSendReport = { viewModel.onCleanStreamSendSyncReport() },
             )
         }
 

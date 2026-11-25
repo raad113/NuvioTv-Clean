@@ -267,6 +267,7 @@ class PlayerViewModel @Inject constructor(
     fun onCleanStreamTimingAdjust(deltaMs: Long) = controller.adjustCleanStreamTiming(deltaMs)
     fun onCleanStreamTimingReset() = controller.resetCleanStreamTiming()
     fun onCleanStreamTimingClose() = controller.closeCleanStreamTiming()
+    fun onCleanStreamSendSyncReport() = controller.sendCleanStreamSyncReport()
 
     fun scheduleHideControls() {
         controller.scheduleHideControls()
