@@ -199,12 +199,11 @@ private fun PlayerRuntimeController.applyCleanStreamSkipsUnsafe(positionMs: Long
             !isCleanSkipDisabled(it)
     }
 
-    // Strong language found in the subtitles (follows the subtitle delay setting)
-    val subtitleDelay = _uiState.value.subtitleDelayMs.toLong()
+    // Strong language found in the subtitles (already at on-screen times, delay included)
     val subtitleMute: CleanSkip? = if (config.subtitleMuteEnabled) {
         cleanSubtitleMutes.firstOrNull {
-            positionMs >= it.startMs + subtitleDelay - SUBTITLE_MUTE_PAD_MS &&
-                positionMs < it.endMs + subtitleDelay + SUBTITLE_MUTE_PAD_MS
+            positionMs >= it.startMs - SUBTITLE_MUTE_PAD_MS &&
+                positionMs < it.endMs + SUBTITLE_MUTE_PAD_MS
         }
     } else null
 
@@ -270,7 +269,9 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
     val english = pickEnglishSubtitle(state.addonSubtitles)?.takeIf { it.url != shown?.url }
     if (shown == null && english == null) return
     val sync = shown?.let { cleanSubtitleSync(it.url) }
-    val key = "${shown?.url}|${english?.url}|${config.customMuteWords}|${sync?.first}|$currentStreamUrl"
+    // The subtitle delay is part of the key: mutes are stored at the times they happen on screen
+    val key = "${shown?.url}|${english?.url}|${config.customMuteWords}|${sync?.first}|$currentStreamUrl|${state.subtitleDelayMs}"
+    val shownDelayMs = state.subtitleDelayMs.toLong()
     if (key == cleanSubtitleSourceKey) return
     cleanSubtitleSourceKey = key
     cleanSubtitleMutes = emptyList()
@@ -279,13 +280,14 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
         val words = config.customMuteWords
         val mutes = mutableListOf<CleanSkip>()
 
-        // 1. Words in the subtitle being watched, at its (synced) times
+        // 1. Words in the subtitle being watched, at its (synced) times plus the viewer's delay
         if (shown != null) {
             val raw = SubtitleProfanity.loadMutes(shown.url, shown.headers, words)
             val map = sync?.second
-            mutes += if (map == null) raw else raw.mapNotNull { m ->
-                val start = map(m.startMs) ?: return@mapNotNull null
-                val end = (map(m.endMs) ?: (start + (m.endMs - m.startMs))).coerceAtLeast(start + 200)
+            mutes += raw.mapNotNull { m ->
+                val start = (if (map == null) m.startMs else map(m.startMs) ?: return@mapNotNull null) + shownDelayMs
+                val mappedEnd = if (map == null) m.endMs else map(m.endMs)
+                val end = ((mappedEnd ?: (start - shownDelayMs + (m.endMs - m.startMs))) + shownDelayMs).coerceAtLeast(start + 200)
                 m.copy(startMs = start, endMs = end)
             }
         }
