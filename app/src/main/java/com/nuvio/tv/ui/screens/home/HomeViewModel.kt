@@ -234,6 +234,8 @@ class HomeViewModel @Inject constructor(
     internal var homeCatalogOrderKeys: List<String> = emptyList()
     internal var disabledHomeCatalogKeys: Set<String> = emptySet()
     internal var followAddonsOrderEnabled: Boolean = false
+    // NuvioTv-Clean: Nuvio Clean rows and collections first on Home (setting, on by default)
+    internal var cleanRowsFirstEnabled: Boolean = true
     internal var customCatalogTitles: Map<String, String> = emptyMap()
     internal var currentHeroCatalogKeys: List<String> = emptyList()
     internal var catalogUpdateJob: Job? = null
@@ -373,6 +375,7 @@ class HomeViewModel @Inject constructor(
             observeContinueWatchingSortMode()
             loadHomeCatalogOrderPreference()
             loadFollowAddonsOrder()
+            loadCleanRowsFirstPipeline()
             loadDisabledHomeCatalogPreference()
             loadCustomCatalogTitles()
             observeLibraryState()

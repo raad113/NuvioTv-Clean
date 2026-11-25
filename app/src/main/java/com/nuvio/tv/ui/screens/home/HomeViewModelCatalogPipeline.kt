@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import com.nuvio.tv.domain.model.MetaPreview
 import com.nuvio.tv.domain.model.PLACEHOLDER_IMAGE_URL
@@ -75,6 +76,20 @@ internal fun HomeViewModel.loadFollowAddonsOrderPipeline() {
             rebuildCatalogOrder(addonsCache)
             scheduleUpdateCatalogRows()
         }
+    }
+}
+
+/** NuvioTv-Clean: re-order Home when "Nuvio Clean rows first" changes. */
+internal fun HomeViewModel.loadCleanRowsFirstPipeline() {
+    viewModelScope.launch {
+        com.nuvio.tv.core.cleanstream.CleanStreamSettings.flow
+            .map { it.cleanRowsFirst }
+            .distinctUntilChanged()
+            .collectLatest { first ->
+                cleanRowsFirstEnabled = first
+                rebuildCatalogOrder(addonsCache)
+                scheduleUpdateCatalogRows()
+            }
     }
 }
 

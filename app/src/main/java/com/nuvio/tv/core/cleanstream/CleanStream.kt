@@ -71,6 +71,8 @@ data class CleanStreamConfig(
     val editorKey: String = "",
     /** Send crash and error reports to the CleanStream server (the viewer's choice, off by default). */
     val sendCrashReports: Boolean = false,
+    /** Show the Nuvio Clean rows and collections first on Home (on by default). */
+    val cleanRowsFirst: Boolean = true,
 )
 
 /** Choices offered in settings, cycled by pressing the row. */
@@ -185,6 +187,7 @@ object CleanStreamSettings {
     private const val KEY_EDITOR = "editor_key"
     private const val KEY_APP_ID = "app_id"
     private const val KEY_SEND_REPORTS = "send_crash_reports"
+    private const val KEY_CLEAN_ROWS_FIRST = "clean_rows_first"
 
     /**
      * A random ID made once for this app install, so the server can keep this
@@ -240,7 +243,13 @@ object CleanStreamSettings {
             reviewScenes = p.getBoolean(KEY_REVIEW_PREFIX + activeProfileId, false),
             editorKey = p.getString(KEY_EDITOR, null) ?: "",
             sendCrashReports = p.getBoolean(KEY_SEND_REPORTS, false),
+            cleanRowsFirst = p.getBoolean(KEY_CLEAN_ROWS_FIRST, true),
         )
+    }
+
+    fun setCleanRowsFirst(first: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_CLEAN_ROWS_FIRST, first)?.apply()
+        state.value = state.value.copy(cleanRowsFirst = first)
     }
 
     fun setSendCrashReports(send: Boolean) {

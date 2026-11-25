@@ -223,6 +223,26 @@ internal fun HomeViewModel.removeTruncatedRowCacheEntry(key: String) {
 }
 
 internal fun HomeViewModel.rebuildCatalogOrder(addons: List<Addon>) {
+    rebuildCatalogOrderBase(addons)
+    // NuvioTv-Clean: Nuvio Clean's rows and collections first, keeping their own order
+    if (cleanRowsFirstEnabled) {
+        synchronized(catalogStateLock) {
+            val (clean, other) = catalogOrder.partition { isNuvioCleanRowKey(it) }
+            if (clean.isNotEmpty()) {
+                catalogOrder.clear()
+                catalogOrder.addAll(clean + other)
+            }
+        }
+    }
+}
+
+/** Rows of the CleanStream add-on, and the collections imported from the CleanStream server. */
+private fun isNuvioCleanRowKey(key: String): Boolean =
+    key.startsWith(com.nuvio.tv.core.cleanstream.CleanStreamFirstRun.ADDON_ID + "_") ||
+        key.startsWith("collection_cs-") ||
+        key.startsWith("collection_cleanstream-")
+
+private fun HomeViewModel.rebuildCatalogOrderBase(addons: List<Addon>) {
     val defaultOrder = buildDefaultCatalogOrder(addons)
     val collectionKeys = collectionsCache.map { "collection_${it.id}" }
     val allAvailable = (defaultOrder + collectionKeys).toSet()

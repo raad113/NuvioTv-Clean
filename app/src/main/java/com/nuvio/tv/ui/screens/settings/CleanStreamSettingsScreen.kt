@@ -107,6 +107,19 @@ fun CleanStreamSettingsContent(
                             modifier = Modifier
                         )
                     }
+                    item(key = "cleanstream_rows_first") {
+                        SettingsActionRow(
+                            title = "Nuvio Clean rows first on Home",
+                            subtitle = if (config.cleanRowsFirst) {
+                                "The Nuvio Clean rows and collections come first on Home. Turn off to use your own row order from Home settings"
+                            } else {
+                                "Home uses your own row order. Turn on to put the Nuvio Clean rows and collections first"
+                            },
+                            value = if (config.cleanRowsFirst) "On" else "Off",
+                            onClick = { CleanStreamSettings.setCleanRowsFirst(!config.cleanRowsFirst) },
+                            modifier = Modifier
+                        )
+                    }
                     item(key = "cleanstream_review") {
                         SettingsActionRow(
                             title = "Review unconfirmed scenes (this profile)",
