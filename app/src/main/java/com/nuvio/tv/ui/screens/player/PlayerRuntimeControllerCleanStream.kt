@@ -479,7 +479,7 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
     if (start == null) {
         cleanMarkStartMs = position
         _uiState.update { it.copy(cleanStreamMarking = true, cleanStreamMarkStartMs = position) }
-        showCleanStreamNotice("Scene start marked. When it ends, hold OK again (or press the shield).")
+        showCleanStreamNotice("Scene start marked. When it ends, press OK (or the shield).")
         return
     }
 

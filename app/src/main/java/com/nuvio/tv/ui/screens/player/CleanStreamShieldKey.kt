@@ -88,8 +88,12 @@ internal fun cleanStreamShieldKey(
         KeyEvent.ACTION_UP -> {
             if (!hold.held) return false
             hold.held = false
-            // A short press: play or pause, as before
-            if (!hold.fired) viewModel.onEvent(PlayerEvent.OnPlayPause)
+            if (!hold.fired) {
+                // While a scene is being marked, a short press marks its end;
+                // otherwise a short press plays or pauses, as before
+                if (uiState.cleanStreamMarking) viewModel.onCleanStreamMark()
+                else viewModel.onEvent(PlayerEvent.OnPlayPause)
+            }
             return true
         }
     }
@@ -213,7 +217,7 @@ internal fun CleanStreamMarkingTag(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = "Hold OK to end",
+            text = "Press OK to end",
             color = Color.White.copy(alpha = 0.85f),
             fontSize = 13.sp,
         )
