@@ -210,6 +210,8 @@ data class PlayerUiState(
     val showStreamSourceIndicator: Boolean = false,
     /** NuvioTv-Clean: true while the viewer is timing a scene with the ♥ button. */
     val cleanStreamMarking: Boolean = false,
+    /** Where the scene being marked started (for the red "Marking" tag), or null. */
+    val cleanStreamMarkStartMs: Long? = null,
     // NuvioTv-Clean: the "Skip timing for this film" panel
     val cleanTimingPanelVisible: Boolean = false,
     val cleanTimingOffsetMs: Long = 0L,

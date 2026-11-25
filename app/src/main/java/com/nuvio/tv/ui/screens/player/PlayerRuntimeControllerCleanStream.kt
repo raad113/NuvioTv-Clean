@@ -101,7 +101,7 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanMarkStartMs = null
     cleanShareJob?.cancel()
     cleanShareJob = null
-    _uiState.update { it.copy(cleanStreamMarking = false) }
+    _uiState.update { it.copy(cleanStreamMarking = false, cleanStreamMarkStartMs = null) }
     cleanSubtitleSourceKey = null
     cleanSubtitleMutes = emptyList()
     releaseCleanStreamMute()
@@ -431,15 +431,15 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
 
     if (start == null) {
         cleanMarkStartMs = position
-        _uiState.update { it.copy(cleanStreamMarking = true) }
-        showCleanStreamNotice("Scene start marked. Press the shield again when it ends.")
+        _uiState.update { it.copy(cleanStreamMarking = true, cleanStreamMarkStartMs = position) }
+        showCleanStreamNotice("Scene start marked. When it ends, hold OK again (or press the shield).")
         return
     }
 
     cleanMarkStartMs = null
-    _uiState.update { it.copy(cleanStreamMarking = false) }
+    _uiState.update { it.copy(cleanStreamMarking = false, cleanStreamMarkStartMs = null) }
     if (position - start < 1_000L) {
-        showCleanStreamNotice("Too short, nothing saved. Press the shield at the start and again at the end.")
+        showCleanStreamNotice("Too short, nothing saved. Hold OK (or press the shield) at the start and again at the end.")
         return
     }
 
@@ -447,7 +447,7 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
     // Store times as they are in the reference copy (remove the local timing adjustment)
     val startMs = (start - config.offsetMs).coerceAtLeast(0L)
     val endMs = (position - config.offsetMs).coerceAtLeast(startMs + 1_000L)
-    showCleanStreamNotice("Sharing in 5 seconds. Press the shield to cancel.")
+    showCleanStreamNotice("Sharing in 5 seconds. Hold OK (or press the shield) to cancel.")
     cleanShareJob = launchCleanStream("cleanstream") {
         delay(CLEAN_SHARE_DELAY_MS)
         // This copy's fingerprint, so other copies of the film can line the scene up

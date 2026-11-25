@@ -247,6 +247,8 @@ fun PlayerScreen(
     val context = LocalContext.current
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val containerFocusRequester = remember { FocusRequester() }
+    // NuvioTv-Clean: whether OK is held down for the shield shortcut (see cleanStreamShieldKey)
+    val cleanOkHold = remember { CleanOkHold() }
     val liveTvPlayer = com.nuvio.tv.ui.reshaped.livetv.rememberLiveTvPlayer(viewModel.controller, containerFocusRequester) // Nuvio RS hook: Live TV
     val playPauseFocusRequester = remember { FocusRequester() }
     val progressBarFocusRequester = remember { FocusRequester() }
@@ -862,6 +864,9 @@ fun PlayerScreen(
                         uiState.error != null ||
                         liveTvPlayer.panelOpen // Nuvio RS hook: Live TV channel list
                 if (panelOrDialogOpen) return@onKeyEvent false
+
+                // NuvioTv-Clean: shield shortcut (hold OK; red, Bookmark or S key), see cleanStreamShieldKey
+                if (cleanStreamShieldKey(keyEvent.nativeKeyEvent, uiState, cleanOkHold, viewModel)) return@onKeyEvent true
 
                 if (keyEvent.nativeKeyEvent.action == KeyEvent.ACTION_UP) {
                     when (keyEvent.nativeKeyEvent.keyCode) {
@@ -1713,6 +1718,16 @@ fun PlayerScreen(
         ) {
             AspectRatioIndicator(text = uiState.aspectRatioIndicatorText)
         }
+
+        // NuvioTv-Clean: red tag while a scene is being marked, until its end is marked
+        CleanStreamMarkingTag(
+            startMs = uiState.cleanStreamMarkStartMs,
+            positionMs = uiState.currentPosition,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 32.dp, end = 40.dp)
+                .zIndex(5f)
+        )
 
         AnimatedVisibility(
             visible = uiState.showStreamSourceIndicator,
