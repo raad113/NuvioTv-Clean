@@ -133,8 +133,12 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
             if (cleanStartNoticeKey != contentKey) {
                 cleanStartNoticeKey = contentKey
                 showCleanStreamNotice(durationMs = CLEAN_START_NOTICE_MS, text =
-                if (skips.isNotEmpty()) "Nuvio Clean: ${skips.size} scene${if (skips.size == 1) "" else "s"} will be skipped · Hold OK to mark a missed scene"
-                else "Nuvio Clean: hold OK to mark a scene to skip"
+                run {
+                    val total = skips.size + result.pending.size
+                    val unconfirmed = if (result.pending.isEmpty()) "" else " (${result.pending.size} unconfirmed)"
+                    if (total > 0) "Nuvio Clean: $total scene${if (total == 1) "" else "s"} flagged$unconfirmed · Hold OK to mark a missed scene"
+                    else "Nuvio Clean: hold OK to mark a scene to skip"
+                }
                 )
             }
         }
@@ -185,7 +189,12 @@ private fun PlayerRuntimeController.applyCleanStreamSkipsUnsafe(positionMs: Long
     // Timing adjustment and safety margin from settings
     val startShift = config.offsetMs - config.marginMs
     val endShift = config.offsetMs + config.marginMs
-    val active: CleanSkip? = cleanSkips.firstOrNull {
+    // Profiles that skip by themselves (e.g. children's) also skip unconfirmed scenes,
+    // so they stay protected while the data is being checked
+    // so they stay protected while the data is being checked. Unconfirmed word mutes apply
+    // on every profile (muting a word costs nothing if it was marked wrongly)
+    val candidates = if (config.skipWithButton) cleanSkips + cleanPending.filter { it.channel == "audio" } else cleanSkips + cleanPending
+    val active: CleanSkip? = candidates.firstOrNull {
         positionMs >= it.startMs + startShift && positionMs < it.endMs + endShift - CLEAN_END_MARGIN_MS &&
             !isCleanSkipDisabled(it)
     }
@@ -384,7 +393,10 @@ private fun PlayerRuntimeController.cleanStreamPendingIntervalsUnsafe(): List<Sk
             )
         }
     } else emptyList()
-    return buttons + cleanStreamUndoIntervals() + cleanPending.filterNot { isCleanSkipDisabled(it) }.mapNotNull { p ->
+    // Unconfirmed scenes get a "Skip (unconfirmed)" button only on profiles that skip
+    // with a button; other profiles skip them by themselves
+    val prompts = if (config.skipWithButton) cleanPending.filter { it.channel != "audio" && !isCleanSkipDisabled(it) } else emptyList()
+    return buttons + cleanStreamUndoIntervals() + prompts.mapNotNull { p ->
         val id = p.ids.firstOrNull() ?: return@mapNotNull null
         SkipInterval(
             startTime = (p.startMs + config.offsetMs).coerceAtLeast(0L) / 1000.0,
