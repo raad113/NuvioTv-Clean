@@ -32,6 +32,9 @@ enum class CleanStreamAnswer { SKIP, CONFIRM, NOT_A_SCENE, DISMISS }
 /** Show the "unconfirmed scene" choice this long before the scene starts. */
 private const val ASK_LEAD_MS = 2_000L
 
+/** Ask after the scene only when playback just passed its end (not after a jump far past it). */
+private const val AFTER_SCENE_WINDOW_MS = 3_000L
+
 /**
  * Called on each progress tick on profiles with the Skip button: while an
  * unconfirmed scene plays, offer Skip / Confirm and skip / Not a scene.
@@ -50,8 +53,18 @@ internal fun PlayerRuntimeController.trackCleanStreamAsk(positionMs: Long, offse
                 _uiState.update { it.copy(cleanReview = CleanStreamReviewPrompt(id, active.label, ask = true, endMs = active.endMs + offsetMs)) }
             }
         }
-        // The scene is over (or was jumped past): the question goes away unanswered
-        current != null && current.ask -> _uiState.update { it.copy(cleanReview = null) }
+        current != null && current.ask -> {
+            // The scene played to its end without an answer: many viewers wait to see whether
+            // anything happens, so now ask "Was this scene marked right?" for a few seconds
+            if (positionMs >= current.endMs && positionMs < current.endMs + AFTER_SCENE_WINDOW_MS) {
+                cleanAskDone += current.segmentId
+                cleanReviewed += current.segmentId
+                showCleanStreamReview(current.copy(ask = false))
+            } else {
+                // Jumped away from the scene: the question goes away unanswered
+                _uiState.update { it.copy(cleanReview = null) }
+            }
+        }
     }
 }
 
@@ -60,7 +73,7 @@ private const val REVIEW_MIN_WATCHED_SHARE = 0.6
 
 /** Ask within this time after the scene ends (not after jumping far past it). */
 private const val REVIEW_ASK_WINDOW_MS = 5_000L
-private const val REVIEW_SHOW_MS = 10_000L
+private const val REVIEW_SHOW_MS = 15_000L
 
 /** Called on each progress tick while the setting is on. */
 internal fun PlayerRuntimeController.trackCleanStreamReview(positionMs: Long, offsetMs: Long) {
