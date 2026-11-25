@@ -65,6 +65,8 @@ data class CleanStreamConfig(
     val customMuteWords: String = "",
     /** Per profile: show a "Skip" button to press (the default), or skip scenes by themselves. */
     val skipWithButton: Boolean = true,
+    /** This TV's trusted-editor key (created by the server owner on /admin), or empty. */
+    val editorKey: String = "",
 )
 
 /** Choices offered in settings, cycled by pressing the row. */
@@ -171,6 +173,7 @@ object CleanStreamSettings {
     private const val PREFS = "clean_stream_settings"
     private const val KEY_ENABLED = "enabled"
     private const val KEY_SERVER = "server_url"
+    private const val KEY_EDITOR = "editor_key"
     private const val KEY_MARGIN = "margin_ms"
     private const val KEY_OFFSET = "offset_ms"
     private const val KEY_QUICK_SEVERITY = "quick_severity"
@@ -210,7 +213,15 @@ object CleanStreamSettings {
             subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + activeProfileId, false),
             customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + activeProfileId, null) ?: "",
             skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, true),
+            editorKey = p.getString(KEY_EDITOR, null) ?: "",
         )
+    }
+
+    /** Save (or clear, with "") this TV's trusted-editor key. */
+    fun setEditorKey(key: String) {
+        val clean = key.trim()
+        prefs?.edit()?.putString(KEY_EDITOR, clean)?.apply()
+        state.value = state.value.copy(editorKey = clean)
     }
 
     fun config(context: Context): StateFlow<CleanStreamConfig> {
@@ -428,6 +439,10 @@ object CleanStreamClient {
             connection.readTimeout = TIMEOUT_MS
             connection.setRequestProperty("Accept", "application/json")
             connection.setRequestProperty("User-Agent", "NuvioTv-Clean")
+            // A trusted editor's marks, votes and timing count straight away on the server
+            CleanStreamSettings.current.editorKey.takeIf { it.isNotBlank() }?.let {
+                connection.setRequestProperty("X-CleanStream-Editor", it)
+            }
             if (jsonBody != null) {
                 connection.doOutput = true
                 connection.setRequestProperty("Content-Type", "application/json")

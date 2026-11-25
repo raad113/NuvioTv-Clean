@@ -61,6 +61,7 @@ fun CleanStreamSettingsContent(
     val context = LocalContext.current
     val config by remember { CleanStreamSettings.config(context) }.collectAsStateWithLifecycle()
     var showServerDialog by remember { mutableStateOf(false) }
+    var showEditorDialog by remember { mutableStateOf(false) }
     var showWordsDialog by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -112,6 +113,16 @@ fun CleanStreamSettingsContent(
                             subtitle = "Where skip data is loaded from. Use your own server to share skips with family and friends",
                             value = config.serverUrl.removePrefix("https://").removePrefix("http://"),
                             onClick = { showServerDialog = true },
+                            enabled = config.enabled,
+                            modifier = Modifier
+                        )
+                    }
+                    item(key = "cleanstream_editor_key") {
+                        SettingsActionRow(
+                            title = "Editor key",
+                            subtitle = "For trusted editors only. With the key from the server owner, your marks, confirmations, reports and timing fixes apply for everyone straight away",
+                            value = if (config.editorKey.isBlank()) "Not set" else "Editor ✓",
+                            onClick = { showEditorDialog = true },
                             enabled = config.enabled,
                             modifier = Modifier
                         )
@@ -205,6 +216,19 @@ fun CleanStreamSettingsContent(
             },
             onReset = { CleanStreamSettings.setServerUrl(""); showServerDialog = false },
             onDismiss = { showServerDialog = false }
+        )
+    }
+
+    if (showEditorDialog) {
+        CleanStreamTextDialog(
+            title = "Editor key",
+            subtitle = "Enter the key the server owner created for you on the /admin page. Tip: the Google TV app on your phone can type or paste it",
+            currentValue = config.editorKey,
+            keyboardType = KeyboardType.Password,
+            resetLabel = "Remove key",
+            onSave = { value -> CleanStreamSettings.setEditorKey(value); showEditorDialog = false },
+            onReset = { CleanStreamSettings.setEditorKey(""); showEditorDialog = false },
+            onDismiss = { showEditorDialog = false }
         )
     }
 
