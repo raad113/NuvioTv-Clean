@@ -2,6 +2,16 @@ package com.nuvio.tv.ui.screens.player
 
 import android.view.KeyEvent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -84,21 +94,99 @@ internal fun cleanStreamShieldKey(
     return false
 }
 
+/* ------------------------------------------------------------------ */
+/* Glass style: translucent layers, a light edge, a glow when focused   */
+/* ------------------------------------------------------------------ */
+
+private val GlassEdge = Color.White.copy(alpha = 0.28f)
+private val GlassEdgeFocused = Color.White.copy(alpha = 0.75f)
+private val Mint = Color(0xFF3EE0A8)
 private val MarkingRed = Color(0xFFE53935)
 
-/** Red "Marking" tag with the scene's length so far, shown until the end is marked. */
+/** A dark glass card for panels over the video. */
+private fun Modifier.glassPanel(shape: androidx.compose.ui.graphics.Shape): Modifier = this
+    .shadow(24.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
+    .background(
+        androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xCC2A313A), Color(0xB3161A20))),
+        shape,
+    )
+    .border(1.dp, androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.06f))), shape)
+
+/** A pill-shaped glass button; [tint] colours the glass (white for a neutral one). */
+@Composable
+private fun GlassButton(
+    text: String,
+    onClick: () -> Unit,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val scale by androidx.compose.animation.core.animateFloatAsState(if (focused) 1.06f else 1f, label = "glassScale")
+    val shape = RoundedCornerShape(50)
+    val top = tint.copy(alpha = if (focused) 0.55f else 0.22f)
+    val bottom = tint.copy(alpha = if (focused) 0.30f else 0.08f)
+    Box(
+        modifier = modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .then(if (focused) Modifier.shadow(18.dp, shape, ambientColor = tint, spotColor = tint) else Modifier)
+            .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(top, bottom)), shape)
+            .border(if (focused) 1.5.dp else 1.dp, if (focused) GlassEdgeFocused else GlassEdge, shape)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(
+                interactionSource = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 22.dp, vertical = 11.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        // A thin highlight along the top edge, as light on glass
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(horizontal = 10.dp)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color.White.copy(alpha = if (focused) 0.6f else 0.3f))
+        )
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = if (focused) FontWeight.Bold else FontWeight.SemiBold,
+        )
+    }
+}
+
+/** Red glass "Marking" tag with the scene's length so far, shown until the end is marked. */
 @Composable
 internal fun CleanStreamMarkingTag(startMs: Long?, positionMs: Long, modifier: Modifier = Modifier) {
     if (startMs == null) return
     val seconds = ((positionMs - startMs).coerceAtLeast(0L) / 1000L)
+    val shape = RoundedCornerShape(50)
+    // The dot pulses gently, like a recording light
+    val pulse by androidx.compose.animation.core.rememberInfiniteTransition(label = "marking").animateFloat(
+        initialValue = 1f,
+        targetValue = 0.35f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(800),
+            androidx.compose.animation.core.RepeatMode.Reverse,
+        ),
+        label = "markingDot",
+    )
     Row(
         modifier = modifier
-            .background(MarkingRed.copy(alpha = 0.92f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .shadow(16.dp, shape, ambientColor = MarkingRed, spotColor = MarkingRed)
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(listOf(MarkingRed.copy(alpha = 0.80f), Color(0xB3801010))),
+                shape,
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.35f), shape)
+            .padding(horizontal = 18.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(modifier = Modifier.size(10.dp).background(Color.White, CircleShape))
+        Box(modifier = Modifier.size(10.dp).graphicsLayer { alpha = pulse }.background(Color.White, CircleShape))
         Text(
             text = "Marking  %d:%02d".format(seconds / 60, seconds % 60),
             color = Color.White,
@@ -113,7 +201,7 @@ internal fun CleanStreamMarkingTag(startMs: Long?, positionMs: Long, modifier: M
     }
 }
 
-/** "Was this scene right?" with two buttons; Back closes it without answering. */
+/** "Was this scene marked right?" on dark glass with two glass buttons; Back closes it without answering. */
 @Composable
 internal fun CleanStreamReviewPanel(
     prompt: CleanStreamReviewPrompt,
@@ -122,26 +210,35 @@ internal fun CleanStreamReviewPanel(
 ) {
     val yesFocus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
     androidx.compose.runtime.LaunchedEffect(prompt) { runCatching { yesFocus.requestFocus() } }
+    val shape = RoundedCornerShape(20.dp)
     androidx.compose.foundation.layout.Column(
         modifier = modifier
-            .background(Color(0xE6101418), RoundedCornerShape(12.dp))
-            .padding(16.dp)
+            .glassPanel(shape)
+            .padding(horizontal = 22.dp, vertical = 18.dp)
             .closeOnBack { onAnswer(null) },
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
-            text = "Was this scene marked right?",
-            color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(text = "Marked as: ${prompt.label}", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            androidx.tv.material3.Button(
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.tv.material3.Icon(
+                imageVector = androidx.compose.material.icons.Icons.Filled.Shield,
+                contentDescription = null,
+                tint = Mint,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(text = "Was this scene marked right?", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+        Text(text = "Marked as: ${prompt.label}", color = Color.White.copy(alpha = 0.75f), fontSize = 14.sp)
+        Row(
+            modifier = Modifier.padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            GlassButton(
+                text = "✓  Yes, skip it for everyone",
                 onClick = { onAnswer(true) },
+                tint = Mint,
                 modifier = Modifier.focusRequester(yesFocus),
-            ) { Text("✓ Yes, skip it for everyone") }
-            androidx.tv.material3.OutlinedButton(onClick = { onAnswer(false) }) { Text("✗ Not a scene") }
+            )
+            GlassButton(text = "✗  Not a scene", onClick = { onAnswer(false) }, tint = Color.White)
         }
     }
 }
