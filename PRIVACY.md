@@ -18,6 +18,10 @@ Skip data comes from a CleanStream server run for this project (by default `fami
 
 Like most web servers, the server may keep short-lived technical logs (IP address, time, request) to protect itself from abuse. It does not build profiles and does not share data with anyone. Shared scenes and timing fingerprints are community data and are kept so that others can use them.
 
+## Crash reports (only if you turn them on)
+
+If you turn on Settings > Nuvio Clean > Send crash reports (it is off by default), the app sends a short report to the skip server when it crashes or when Nuvio Clean catches an error. A report contains the app version, the TV model and Android version, and the technical details of the error. Web addresses are removed before it is sent, so stream links cannot be included. Reports are kept only to fix problems, and only the newest 100 are kept. Turn the setting off at any time to stop sending.
+
 ## Trakt and Simkl
 
 If you connect Trakt or Simkl (Settings > Tracking), you sign in on their websites with your own account. The app stores the sign-in token **on your TV only** and uses it to read and update your watch history, watchlist, progress and ratings with that service. That data goes directly between your TV and Trakt or Simkl; it never passes through the Nuvio Clean server. You can disconnect at any time in Settings > Tracking, and remove the app's access on the service's own website.
