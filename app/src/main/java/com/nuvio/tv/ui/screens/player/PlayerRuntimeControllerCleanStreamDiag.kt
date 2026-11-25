@@ -19,7 +19,7 @@ private const val CLEAN_DIAG_MAX_LINES = 150
 /** Note one step, with the playback position at the time. */
 internal fun PlayerRuntimeController.cleanDiag(text: String) {
     // From the UI state: the player itself may only be asked on the main thread
-    val pos = _uiState.value.currentPosition.takeIf { it > 0 }
+    val pos = _playbackTimeline.value.currentPosition.takeIf { it > 0 }
     val line = "[${pos?.let { formatDiagTime(it) } ?: "-"}] $text"
     synchronized(cleanDiagLines) {
         cleanDiagLines.addLast(line)

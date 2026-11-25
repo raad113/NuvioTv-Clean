@@ -1738,7 +1738,7 @@ fun PlayerScreen(
         // NuvioTv-Clean: red tag while a scene is being marked, until its end is marked
         CleanStreamMarkingTag(
             startMs = uiState.cleanStreamMarkStartMs,
-            positionMs = uiState.currentPosition,
+            timeline = viewModel.playbackTimeline,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 32.dp, end = 40.dp)

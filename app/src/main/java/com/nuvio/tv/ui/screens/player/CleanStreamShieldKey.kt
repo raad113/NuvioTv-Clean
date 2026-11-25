@@ -2,6 +2,8 @@ package com.nuvio.tv.ui.screens.player
 
 import android.view.KeyEvent
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -160,16 +162,22 @@ private fun GlassButton(
 
 /** Red glass "Marking" tag with the scene's length so far, shown until the end is marked. */
 @Composable
-internal fun CleanStreamMarkingTag(startMs: Long?, positionMs: Long, modifier: Modifier = Modifier) {
+internal fun CleanStreamMarkingTag(
+    startMs: Long?,
+    timeline: kotlinx.coroutines.flow.StateFlow<PlaybackTimelineState>,
+    modifier: Modifier = Modifier,
+) {
     if (startMs == null) return
+    // Read here, so only the tag redraws as playback moves
+    val positionMs = timeline.collectAsState().value.currentPosition
     val seconds = ((positionMs - startMs).coerceAtLeast(0L) / 1000L)
     val shape = RoundedCornerShape(50)
     // The dot pulses gently, like a recording light
     val pulse by androidx.compose.animation.core.rememberInfiniteTransition(label = "marking").animateFloat(
         initialValue = 1f,
         targetValue = 0.35f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            androidx.compose.animation.core.tween(800),
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable<Float>(
+            androidx.compose.animation.core.tween<Float>(800),
             androidx.compose.animation.core.RepeatMode.Reverse,
         ),
         label = "markingDot",
