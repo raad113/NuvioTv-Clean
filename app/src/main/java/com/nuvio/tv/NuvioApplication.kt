@@ -100,6 +100,7 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         androidTvChannelSyncService.start()
         serverUserStateProjection.start()
         cleanStreamFirstRun.start() // NuvioTv-Clean: built-in CleanStream add-on and family collection
+        com.nuvio.tv.core.cleanstream.CrashRecorder.install(this) // NuvioTv-Clean: crash reports in the debug log
         // Load locale synchronously so it's available before Activity.attachBaseContext.
         // SharedPreferences reads are fast (cached in memory after first access).
         val tag = getSharedPreferences("app_locale", Context.MODE_PRIVATE)

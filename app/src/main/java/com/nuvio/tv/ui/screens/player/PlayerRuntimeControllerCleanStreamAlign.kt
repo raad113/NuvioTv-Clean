@@ -94,7 +94,7 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
     cleanAlignKey = key
     cleanAlignJob?.cancel()
     val requestKey = cleanSkipsKey
-    cleanAlignJob = scope.launch {
+    cleanAlignJob = launchCleanStream("cleanstream align") {
         val raw = cleanSkipsRaw
         val pendingRaw = cleanPendingRaw
         val serverUrl = CleanStreamSettings.current.serverUrl
@@ -156,7 +156,7 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
         val aligned = raw.map { line(it) }
         val alignedPending = pendingRaw.map { line(it) }
         // Ignore the result if the title (or its skip list) changed meanwhile
-        if (cleanSkipsKey != requestKey || cleanSkipsRaw !== raw || cleanPendingRaw !== pendingRaw) return@launch
+        if (cleanSkipsKey != requestKey || cleanSkipsRaw !== raw || cleanPendingRaw !== pendingRaw) return@launchCleanStream
         cleanSkips = aligned
         cleanPending = alignedPending
         cleanMatchedCorrectionMs = matchedCorrection
@@ -191,7 +191,7 @@ internal fun PlayerRuntimeController.offerCleanStreamUndo(skip: CleanSkip, landi
     cleanUndo = CleanStreamUndo(skip, interval)
     recomputeMergedSkipIntervals()
     cleanUndoJob?.cancel()
-    cleanUndoJob = scope.launch {
+    cleanUndoJob = launchCleanStream("cleanstream align") {
         kotlinx.coroutines.delay(CLEANSTREAM_UNDO_SHOW_MS + 1_000L)
         if (cleanUndo?.interval === interval) {
             cleanUndo = null
@@ -224,7 +224,7 @@ internal fun PlayerRuntimeController.onCleanStreamUndoPressed(interval: com.nuvi
     val contentKey = cleanContentKey
     val serverUrl = CleanStreamSettings.current.serverUrl
     if (contentKey != null) {
-        scope.launch {
+        launchCleanStream("cleanstream align") {
             skip.ids.forEach { id ->
                 CleanStreamClient.vote(serverUrl, contentKey, id, up = false, reason = "timing")
             }
@@ -284,7 +284,7 @@ internal fun PlayerRuntimeController.closeCleanStreamTiming() {
     val value = CleanStreamSettings.titleOffset(contentKey)
     if (value == null || value == cleanTimingAtOpen) return
     val serverUrl = CleanStreamSettings.current.serverUrl
-    scope.launch {
+    launchCleanStream("cleanstream align") {
         val ref = withTimeoutOrNull(15_000L) { cleanStreamLocalTimeline() }
         val shared = ref != null && CleanStreamClient.sendTiming(serverUrl, contentKey, value, ref)
         showCleanStreamNotice(

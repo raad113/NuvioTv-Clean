@@ -22,6 +22,24 @@ import kotlinx.coroutines.withTimeoutOrNull
  * is marked "audio" (e.g. strong language).
  */
 
+/**
+ * Start a Nuvio Clean background task in the player. Errors are caught and
+ * recorded instead of closing the app: at worst the feature does not run for
+ * this title, and playback carries on.
+ */
+internal fun PlayerRuntimeController.launchCleanStream(
+    where: String,
+    block: suspend kotlinx.coroutines.CoroutineScope.() -> Unit,
+): kotlinx.coroutines.Job = scope.launch {
+    try {
+        block()
+    } catch (cancel: kotlinx.coroutines.CancellationException) {
+        throw cancel
+    } catch (error: Exception) {
+        com.nuvio.tv.core.cleanstream.CrashRecorder.recordHandled(where, error)
+    }
+}
+
 /** Ignore a second jump this soon after the first, in case the player refuses the seek. */
 private const val CLEAN_SEEK_GUARD_MS = 1_500L
 
@@ -86,7 +104,7 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanSubtitleMutes = emptyList()
     releaseCleanStreamMute()
 
-    scope.launch {
+    launchCleanStream("cleanstream") {
         val result = withTimeoutOrNull(20_000L) { CleanStreamClient.fetchSkips(contentKey, config) }
             ?: com.nuvio.tv.core.cleanstream.CleanStreamSkips()
         // The viewer may have moved to another title while this was loading
@@ -221,7 +239,7 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
     if (key == cleanSubtitleSourceKey) return
     cleanSubtitleSourceKey = key
     cleanSubtitleMutes = emptyList()
-    scope.launch {
+    launchCleanStream("cleanstream") {
         val raw = SubtitleProfanity.loadMutes(subtitle.url, subtitle.headers, config.customMuteWords)
         val mutes = if (retime == null) raw else {
             val mapper = com.nuvio.tv.ui.screens.player.autosync.AutoSyncTimelineTimeMapper(retime)
@@ -260,7 +278,7 @@ private fun PlayerRuntimeController.setCleanStreamMuted(muted: Boolean) {
 internal fun PlayerRuntimeController.showCleanStreamNotice(text: String) {
     hideStreamSourceIndicatorJob?.cancel()
     _uiState.update { it.copy(showStreamSourceIndicator = true, streamSourceIndicatorText = text) }
-    hideStreamSourceIndicatorJob = scope.launch {
+    hideStreamSourceIndicatorJob = launchCleanStream("cleanstream") {
         delay(CLEAN_NOTICE_MS)
         _uiState.update { it.copy(showStreamSourceIndicator = false) }
     }
@@ -310,7 +328,7 @@ internal fun PlayerRuntimeController.onCleanStreamPromptSkipped(interval: SkipIn
     // Do not offer the same scene again in this session
     cleanPending = cleanPending.filterNot { it.ids.contains(segmentId) }
     recomputeMergedSkipIntervals()
-    scope.launch {
+    launchCleanStream("cleanstream") {
         // Our copy's fingerprint lets this skip be lined up on other copies too
         val ref = withTimeoutOrNull(15_000L) { cleanStreamLocalTimeline() }
         CleanStreamClient.vote(serverUrl, contentKey, segmentId, up = true, ref = ref)
@@ -367,7 +385,7 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
     val startMs = (start - config.offsetMs).coerceAtLeast(0L)
     val endMs = (position - config.offsetMs).coerceAtLeast(startMs + 1_000L)
     showCleanStreamNotice("Sharing in 5 seconds. Press ♥ to cancel.")
-    cleanShareJob = scope.launch {
+    cleanShareJob = launchCleanStream("cleanstream") {
         delay(CLEAN_SHARE_DELAY_MS)
         // This copy's fingerprint, so other copies of the film can line the scene up
         val ref = withTimeoutOrNull(15_000L) { cleanStreamLocalTimeline() }
