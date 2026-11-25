@@ -58,7 +58,7 @@ private const val SUBTITLE_MUTE_PAD_MS = 250L
 private const val CLEAN_BUTTON_LEAD_MS = 10_000L
 
 /** Time to cancel a ♥ mark before it is shared. */
-private const val CLEAN_SHARE_DELAY_MS = 5_000L
+private const val CLEAN_SHARE_DELAY_MS = 10_000L
 
 /** Skip-interval type prefix for unconfirmed scenes; the rest of the type is the scene label. */
 internal const val CLEANSTREAM_PROMPT_TYPE_PREFIX = "cleanstream:"
@@ -110,6 +110,7 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanMarkStartMs = null
     cleanShareJob?.cancel()
     cleanShareJob = null
+    _uiState.update { it.copy(cleanShareEndsAt = null) }
     _uiState.update { it.copy(cleanStreamMarking = false, cleanStreamMarkStartMs = null) }
     cleanSubtitleSourceKey = null
     cleanSubtitleMutes = emptyList()
@@ -468,6 +469,7 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
         if (job.isActive) {
             job.cancel()
             cleanShareJob = null
+            _uiState.update { it.copy(cleanShareEndsAt = null) }
             showCleanStreamNotice("Cancelled. Nothing was shared.")
             return
         }
@@ -494,9 +496,11 @@ internal fun PlayerRuntimeController.toggleCleanStreamMark() {
     // Store times as they are in the reference copy (remove the local timing adjustment)
     val startMs = (start - config.offsetMs).coerceAtLeast(0L)
     val endMs = (position - config.offsetMs).coerceAtLeast(startMs + 1_000L)
-    showCleanStreamNotice("Sharing in 5 seconds. Hold OK (or press the shield) to cancel.")
+    // A glass note counts down the seconds left to cancel (see CleanStreamShareCountdown)
+    _uiState.update { it.copy(cleanShareEndsAt = SystemClock.elapsedRealtime() + CLEAN_SHARE_DELAY_MS) }
     cleanShareJob = launchCleanStream("cleanstream") {
         delay(CLEAN_SHARE_DELAY_MS)
+        _uiState.update { it.copy(cleanShareEndsAt = null) }
         // This copy's fingerprint, so other copies of the film can line the scene up
         val ref = withTimeoutOrNull(15_000L) { cleanStreamLocalTimeline() }
         val status = CleanStreamClient.contribute(

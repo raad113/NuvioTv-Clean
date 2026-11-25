@@ -212,6 +212,8 @@ data class PlayerUiState(
     val cleanStreamMarking: Boolean = false,
     /** Where the scene being marked started (for the red "Marking" tag), or null. */
     val cleanStreamMarkStartMs: Long? = null,
+    /** When a just-marked scene will be shared (elapsedRealtime), while it can still be cancelled. */
+    val cleanShareEndsAt: Long? = null,
     /** "Was this scene right?" after an unconfirmed scene played (review setting), or null. */
     val cleanReview: CleanStreamReviewPrompt? = null,
     // NuvioTv-Clean: the "Skip timing for this film" panel

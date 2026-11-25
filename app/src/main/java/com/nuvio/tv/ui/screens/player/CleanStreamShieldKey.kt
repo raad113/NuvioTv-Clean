@@ -175,6 +175,37 @@ private fun GlassButton(
     }
 }
 
+/** Glass note while a marked scene waits to be shared: seconds left, and how to cancel. */
+@Composable
+internal fun CleanStreamShareCountdown(endsAt: Long?, modifier: Modifier = Modifier) {
+    if (endsAt == null) return
+    var now by androidx.compose.runtime.remember { androidx.compose.runtime.mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
+    androidx.compose.runtime.LaunchedEffect(endsAt) {
+        while (now < endsAt) {
+            kotlinx.coroutines.delay(200)
+            now = android.os.SystemClock.elapsedRealtime()
+        }
+    }
+    val seconds = ((endsAt - now + 999) / 1000).coerceAtLeast(0)
+    val shape = RoundedCornerShape(50)
+    Row(
+        modifier = modifier
+            .glassPanel(shape)
+            .padding(horizontal = 18.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        androidx.tv.material3.Icon(
+            imageVector = androidx.compose.material.icons.Icons.Filled.Shield,
+            contentDescription = null,
+            tint = Mint,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(text = "Sharing in $seconds s", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, style = GlassTextStyle)
+        Text(text = "Hold OK to cancel", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, style = GlassTextStyle)
+    }
+}
+
 /** Red glass "Marking" tag with the scene's length so far, shown until the end is marked. */
 @Composable
 internal fun CleanStreamMarkingTag(

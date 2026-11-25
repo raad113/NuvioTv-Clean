@@ -1743,6 +1743,15 @@ fun PlayerScreen(
             )
         }
 
+        // NuvioTv-Clean: glass countdown while a marked scene can still be cancelled
+        CleanStreamShareCountdown(
+            endsAt = uiState.cleanShareEndsAt,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 32.dp, end = 40.dp)
+                .zIndex(5f)
+        )
+
         // NuvioTv-Clean: red tag while a scene is being marked, until its end is marked
         CleanStreamMarkingTag(
             startMs = uiState.cleanStreamMarkStartMs,
