@@ -600,6 +600,8 @@ class PlayerRuntimeController(
     internal var cleanCorrections: List<com.nuvio.tv.core.cleanstream.TimingCorrection> = emptyList()
     internal var cleanMatchedCorrectionMs: Long? = null
     // Dialogue quoted by skips without a fingerprint, and the English subtitle lines matched against it
+    // The title the start-of-playback notice was last shown for
+    internal var cleanStartNoticeKey: String? = null
     internal var cleanAnchors: List<com.nuvio.tv.core.cleanstream.DialogueAnchor> = emptyList()
     internal var cleanAnchorCuesKey: String? = null
     internal var cleanAnchorCues: List<com.nuvio.tv.core.cleanstream.SubtitleProfanity.Cue> = emptyList()

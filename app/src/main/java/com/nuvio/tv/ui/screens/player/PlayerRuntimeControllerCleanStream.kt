@@ -49,6 +49,7 @@ private const val CLEAN_SEEK_GUARD_MS = 1_500L
 private const val CLEAN_END_MARGIN_MS = 300L
 
 private const val CLEAN_NOTICE_MS = 3_000L
+private const val CLEAN_START_NOTICE_MS = 6_000L
 
 /** Extra quiet time around a subtitle line that contains strong language. */
 private const val SUBTITLE_MUTE_PAD_MS = 250L
@@ -122,8 +123,14 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
             cleanMatchedCorrectionMs = null
             cleanAlignKey = null
             recomputeMergedSkipIntervals()
-            if (skips.isNotEmpty()) {
-                showCleanStreamNotice("Nuvio Clean: ${skips.size} scene${if (skips.size == 1) "" else "s"} will be skipped")
+            // Once per title (not after a reload, e.g. when a shared scene was just saved),
+            // with a hint on how to mark a scene that was missed (hold OK on any remote)
+            if (cleanStartNoticeKey != contentKey) {
+                cleanStartNoticeKey = contentKey
+                showCleanStreamNotice(durationMs = CLEAN_START_NOTICE_MS, text =
+                if (skips.isNotEmpty()) "Nuvio Clean: ${skips.size} scene${if (skips.size == 1) "" else "s"} will be skipped · Hold OK to mark a missed scene"
+                else "Nuvio Clean: hold OK to mark a scene to skip"
+                )
             }
         }
     }
@@ -330,11 +337,11 @@ private fun PlayerRuntimeController.setCleanStreamMuted(muted: Boolean) {
 }
 
 /** Reuses the small "Source: ..." pill that the player already shows. */
-internal fun PlayerRuntimeController.showCleanStreamNotice(text: String) {
+internal fun PlayerRuntimeController.showCleanStreamNotice(text: String, durationMs: Long = CLEAN_NOTICE_MS) {
     hideStreamSourceIndicatorJob?.cancel()
     _uiState.update { it.copy(showStreamSourceIndicator = true, streamSourceIndicatorText = text) }
     hideStreamSourceIndicatorJob = launchCleanStream("cleanstream") {
-        delay(CLEAN_NOTICE_MS)
+        delay(durationMs)
         _uiState.update { it.copy(showStreamSourceIndicator = false) }
     }
 }
