@@ -11,6 +11,8 @@ import com.nuvio.tv.domain.model.Subtitle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /*
@@ -239,44 +241,77 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
         return
     }
     val state = _uiState.value
-    val subtitle = state.selectedAddonSubtitle ?: pickMuteSubtitle(state.addonSubtitles) ?: return
-    // When the subtitle was synced (AutoSync or speech sync), mute at the corrected times
-    val sync = cleanSubtitleSync(subtitle.url)
-    val rawKey = "${subtitle.url}|${config.customMuteWords}"
-    val key = "$rawKey|${sync?.first}"
+    // The subtitle being watched (shown, so its timing is right once synced) and,
+    // when that is not English, an English one for the words actually spoken
+    val shown = state.selectedAddonSubtitle
+    val english = pickEnglishSubtitle(state.addonSubtitles)?.takeIf { it.url != shown?.url }
+    if (shown == null && english == null) return
+    val sync = shown?.let { cleanSubtitleSync(it.url) }
+    val key = "${shown?.url}|${english?.url}|${config.customMuteWords}|${sync?.first}|$currentStreamUrl"
     if (key == cleanSubtitleSourceKey) return
     cleanSubtitleSourceKey = key
-
-    fun retimed(raw: List<CleanSkip>): List<CleanSkip> {
-        val map = sync?.second ?: return raw
-        return raw.mapNotNull { m ->
-            val start = map(m.startMs) ?: return@mapNotNull null
-            val end = (map(m.endMs) ?: (start + (m.endMs - m.startMs))).coerceAtLeast(start + 200)
-            m.copy(startMs = start, endMs = end)
-        }
-    }
-
-    // Same subtitle and words, only the sync changed: re-time without downloading again
-    if (rawKey == cleanSubtitleMutesRawKey) {
-        cleanSubtitleMutes = retimed(cleanSubtitleMutesRaw)
-        return
-    }
     cleanSubtitleMutes = emptyList()
-    launchCleanStream("cleanstream") {
-        val raw = SubtitleProfanity.loadMutes(subtitle.url, subtitle.headers, config.customMuteWords)
+
+    launchCleanStream("subtitle mutes") {
+        val words = config.customMuteWords
+        val mutes = mutableListOf<CleanSkip>()
+
+        // 1. Words in the subtitle being watched, at its (synced) times
+        if (shown != null) {
+            val raw = SubtitleProfanity.loadMutes(shown.url, shown.headers, words)
+            val map = sync?.second
+            mutes += if (map == null) raw else raw.mapNotNull { m ->
+                val start = map(m.startMs) ?: return@mapNotNull null
+                val end = (map(m.endMs) ?: (start + (m.endMs - m.startMs))).coerceAtLeast(start + 200)
+                m.copy(startMs = start, endMs = end)
+            }
+        }
         if (cleanSubtitleSourceKey != key) return@launchCleanStream
-        cleanSubtitleMutesRaw = raw
-        cleanSubtitleMutesRawKey = rawKey
-        cleanSubtitleMutes = retimed(raw)
+        cleanSubtitleMutes = mutes.sortedBy { it.startMs }
+
+        // 2. Words in the English subtitle, lined up with this copy. Its file may be
+        //    timed for another release, so its times are never used as they are.
+        if (english != null) {
+            val cues = SubtitleProfanity.loadCues(english.url, english.headers)
+            val found = SubtitleProfanity.findMutes(cues, words)
+            if (found.isNotEmpty()) {
+                // This copy's real timing: built-in subtitles, or the watched subtitle once synced
+                val local = cleanStreamLocalTimeline()
+                val englishRef = cues.map { it.startMs to it.endMs }.sortedBy { it.first }.distinct()
+                    .takeIf { it.size >= com.nuvio.tv.core.cleanstream.TimingRef.MIN_CUES }
+                    ?.let { com.nuvio.tv.core.cleanstream.TimingRef("subtitle", null, it) }
+                if (local == null || englishRef == null) {
+                    if (!cleanMuteNoticeShown) {
+                        cleanMuteNoticeShown = true
+                        showCleanStreamNotice("To mute swear words at the right moments, turn on a subtitle.")
+                    }
+                } else {
+                    val placed = withContext(com.nuvio.tv.ui.screens.player.autosync.AutomaticSubtitleSync.autoSyncDispatcher) {
+                        // Lines close together share one match, to save work
+                        var last: Pair<Long, CleanStreamAligner.Transform?>? = null
+                        found.mapNotNull { m ->
+                            val transform = last?.takeIf { abs(it.first - m.startMs) <= 60_000L }?.second
+                                ?: CleanStreamAligner.transformAt(local, englishRef, m.startMs).also { last = m.startMs to it }
+                                ?: return@mapNotNull null
+                            val start = transform.map(m.startMs)
+                            m.copy(startMs = start, endMs = transform.map(m.endMs).coerceAtLeast(start + 200))
+                        }
+                    }
+                    // Keep the watched subtitle's own mutes; add English ones that are not already covered
+                    val extra = placed.filter { e -> mutes.none { it.startMs - 1_000 <= e.endMs && e.startMs <= it.endMs + 1_000 } }
+                    mutes += extra
+                }
+            }
+        }
+        if (cleanSubtitleSourceKey == key) cleanSubtitleMutes = mutes.sortedBy { it.startMs }
     }
 }
 
-private fun pickMuteSubtitle(subtitles: List<Subtitle>): Subtitle? {
-    fun matches(sub: Subtitle, codes: Set<String>) = sub.lang.trim().lowercase().let { lang ->
-        codes.any { lang == it || lang.startsWith("$it-") || lang.startsWith("$it ") }
+/** An English subtitle from the subtitle add-ons, for the words actually spoken. */
+private fun pickEnglishSubtitle(subtitles: List<Subtitle>): Subtitle? = subtitles.firstOrNull { sub ->
+    sub.lang.trim().lowercase().let { lang ->
+        setOf("en", "eng", "english").any { lang == it || lang.startsWith("$it-") || lang.startsWith("$it ") }
     }
-    return subtitles.firstOrNull { matches(it, setOf("en", "eng", "english")) }
-        ?: subtitles.firstOrNull { matches(it, setOf("ar", "ara", "arabic")) }
 }
 
 internal fun PlayerRuntimeController.releaseCleanStreamMute() {
