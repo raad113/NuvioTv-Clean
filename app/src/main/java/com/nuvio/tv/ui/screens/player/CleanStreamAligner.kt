@@ -40,6 +40,9 @@ internal object CleanStreamAligner {
     private const val MATCH_TOLERANCE_MS = 400L
     private const val VOTE_BIN_MS = 200L
 
+    /** Largest shift considered between two copies (added logos, intros, cut scenes). */
+    private const val MAX_SHIFT_MS = 20 * 60_000L
+
     /** At least this share of the surrounding lines must line up... */
     private const val MIN_MATCH_SHARE = 0.5
     private const val MIN_MATCHES = 10
@@ -81,20 +84,37 @@ internal object CleanStreamAligner {
         // most votes because most lines agree on it.
         val candidates = mutableListOf<Candidate>()
         for (scale in SCALES) {
-            val votes = HashMap<Long, Int>()
+            // Every pairing of a nearby line with a line of the watched copy (within
+            // MAX_SHIFT_MS) votes for a shift; the true shift collects most votes
+            val bins = ArrayList<Long>(window.size * 64)
             for (r in window) {
                 val scaled = r * scale
-                for (l in localStarts) {
-                    val bin = ((l - scaled) / VOTE_BIN_MS).roundToLong()
-                    votes[bin] = (votes[bin] ?: 0) + 1
-                }
+                val from = lowerBound(localStarts, (scaled - MAX_SHIFT_MS).roundToLong())
+                val to = lowerBound(localStarts, (scaled + MAX_SHIFT_MS).roundToLong())
+                for (i in from until to) bins += ((localStarts[i] - scaled) / VOTE_BIN_MS).roundToLong()
             }
-            // Strongest shifts for this factor, counting neighbouring bins too
-            val ranked = votes.keys.map { bin -> bin to (votes[bin]!! + (votes[bin - 1] ?: 0) + (votes[bin + 1] ?: 0)) }
-                .sortedByDescending { it.second }
-            val top = ranked.firstOrNull() ?: continue
+            if (bins.isEmpty()) continue
+            val sorted = bins.toLongArray().also { it.sort() }
+            // Count each bin, then score it together with its neighbours
+            val keys = ArrayList<Long>()
+            val counts = ArrayList<Int>()
+            var i = 0
+            while (i < sorted.size) {
+                var j = i
+                while (j < sorted.size && sorted[j] == sorted[i]) j++
+                keys += sorted[i]; counts += j - i
+                i = j
+            }
+            fun countAt(k: Int) = if (k in keys.indices) counts[k] else 0
+            val scores = keys.indices.map { k ->
+                var score = counts[k]
+                if (k > 0 && keys[k - 1] == keys[k] - 1) score += countAt(k - 1)
+                if (k + 1 < keys.size && keys[k + 1] == keys[k] + 1) score += countAt(k + 1)
+                keys[k] to score
+            }.sortedByDescending { it.second }
+            val top = scores.first()
             // The best shift, and the best one clearly apart from it (to judge how clear the winner is)
-            listOfNotNull(top, ranked.firstOrNull { abs(it.first - top.first) * VOTE_BIN_MS > 2_000L }).forEach { (bin, _) ->
+            listOfNotNull(top, scores.firstOrNull { abs(it.first - top.first) * VOTE_BIN_MS > 2_000L }).forEach { (bin, _) ->
                 val offset = bin * VOTE_BIN_MS
                 candidates += Candidate(scale, offset, countMatches(window, localStarts, scale, offset))
             }
@@ -131,6 +151,17 @@ internal object CleanStreamAligner {
             val expected = (r * scale + offsetMs).roundToLong()
             abs(nearest(localStarts, expected) - expected) <= MATCH_TOLERANCE_MS
         }
+
+    /** Index of the first value in sorted [values] that is not below [target]. */
+    private fun lowerBound(values: LongArray, target: Long): Int {
+        var low = 0
+        var high = values.size
+        while (low < high) {
+            val mid = (low + high) ushr 1
+            if (values[mid] < target) low = mid + 1 else high = mid
+        }
+        return low
+    }
 
     /** The value in sorted [values] closest to [target]. */
     private fun nearest(values: LongArray, target: Long): Long {

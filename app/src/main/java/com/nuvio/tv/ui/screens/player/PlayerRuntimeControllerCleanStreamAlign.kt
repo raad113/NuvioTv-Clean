@@ -22,6 +22,12 @@ import kotlin.math.abs
  * every skip to where its scene is in this copy (see CleanStreamAligner).
  */
 
+/** Wait this long after a film starts before reading its fingerprint, so the video buffers first. */
+private const val CLEAN_ALIGN_START_DELAY_MS = 15_000L
+
+/** ...unless a flagged scene starts within this time of the beginning. */
+private const val CLEAN_ALIGN_EARLY_SCENE_MS = 90_000L
+
 /** Show "lined up" only when a skip moved at least this much. */
 private const val ALIGN_NOTICE_MIN_SHIFT_MS = 1_000L
 
@@ -99,7 +105,20 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
         val pendingRaw = cleanPendingRaw
         val serverUrl = CleanStreamSettings.current.serverUrl
         val duration = currentPlaybackDurationMs().takeIf { it > 0 }
-        val local = cleanStreamLocalTimeline()
+
+        // Reading this copy's fingerprint downloads parts of the video file, so only do it
+        // when something can use it: skips with a fingerprint, or shared timing corrections
+        val all = raw + pendingRaw
+        val needsLocal = manualOffset == null &&
+            (all.any { it.refId != null } || (cleanCorrections.isNotEmpty() && all.any { it.refId == null }))
+        val local = if (!needsLocal) null else {
+            // Let the video buffer first, unless a scene comes very early in the film
+            val earliest = all.minOfOrNull { it.startMs } ?: Long.MAX_VALUE
+            if (earliest > CLEAN_ALIGN_EARLY_SCENE_MS && cleanLocalRef == null) {
+                kotlinx.coroutines.delay(CLEAN_ALIGN_START_DELAY_MS)
+            }
+            cleanStreamLocalTimeline()
+        }
 
         // The fingerprint of each copy the skips were marked on
         val refIds = (raw + pendingRaw).mapNotNull { it.refId }.distinct()
