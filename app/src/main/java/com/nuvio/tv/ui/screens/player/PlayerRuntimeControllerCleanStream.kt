@@ -118,6 +118,7 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
             cleanSkips = skips
             cleanPending = result.pending
             cleanCorrections = result.corrections
+            cleanAnchors = result.anchors
             cleanMatchedCorrectionMs = null
             cleanAlignKey = null
             recomputeMergedSkipIntervals()
@@ -308,7 +309,7 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
 }
 
 /** An English subtitle from the subtitle add-ons, for the words actually spoken. */
-private fun pickEnglishSubtitle(subtitles: List<Subtitle>): Subtitle? = subtitles.firstOrNull { sub ->
+internal fun pickEnglishSubtitle(subtitles: List<Subtitle>): Subtitle? = subtitles.firstOrNull { sub ->
     sub.lang.trim().lowercase().let { lang ->
         setOf("en", "eng", "english").any { lang == it || lang.startsWith("$it-") || lang.startsWith("$it ") }
     }

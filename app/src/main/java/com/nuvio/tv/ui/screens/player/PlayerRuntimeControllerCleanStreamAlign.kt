@@ -140,7 +140,10 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
     val state = _uiState.value
     val hasDuration = currentPlaybackDurationMs() > 0
     val manualOffset = cleanContentKey?.let { CleanStreamSettings.titleOffset(it) }
-    val baseKey = "$cleanSkipsKey|$currentStreamUrl|${state.selectedAddonSubtitle?.url}|${state.subtitleDelayMs}|$hasDuration|$manualOffset"
+    // An English subtitle, to line up skips without a fingerprint by the dialogue they quote
+    val english = if (cleanAnchors.isEmpty()) null
+        else state.selectedAddonSubtitle?.takeIf { pickEnglishSubtitle(listOf(it)) != null } ?: pickEnglishSubtitle(state.addonSubtitles)
+    val baseKey = "$cleanSkipsKey|$currentStreamUrl|${state.selectedAddonSubtitle?.url}|${state.subtitleDelayMs}|$hasDuration|$manualOffset|${english?.url}"
     val syncId = state.selectedAddonSubtitle?.url?.let { cleanSubtitleSync(it)?.first }
     val key = "$baseKey|$syncId"
     if (key == cleanAlignKey) return
@@ -161,8 +164,12 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
         // Reading this copy's fingerprint downloads parts of the video file, so only do it
         // when something can use it: skips with a fingerprint, or shared timing corrections
         val all = raw + pendingRaw
+        val anchors = cleanAnchors
+        val selected = state.selectedAddonSubtitle
+        // Lining up by dialogue needs this copy's timing only when the English subtitle is not the one shown
+        val anchorsNeedLocal = english != null && english.url != selected?.url
         val needsLocal = manualOffset == null &&
-            (all.any { it.refId != null } || (cleanCorrections.isNotEmpty() && all.any { it.refId == null }))
+            (all.any { it.refId != null } || (all.any { it.refId == null } && (cleanCorrections.isNotEmpty() || anchorsNeedLocal)))
         val local = if (!needsLocal) null else {
             // Let the video buffer first, unless a scene comes very early in the film
             val earliest = all.minOfOrNull { it.startMs } ?: Long.MAX_VALUE
@@ -181,6 +188,41 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
             CleanStreamClient.fetchRef(serverUrl, c.refId)?.let { c to it }
         }
         var matchedCorrection: Long? = null
+
+        // Skips without a fingerprint quote their dialogue: find those lines in the English
+        // subtitle, then follow the subtitle to this copy (as the swear-word muting does)
+        val toViewer: ((Long) -> Long?)? = if (english == null || manualOffset != null || all.none { it.refId == null }) null else {
+            if (cleanAnchorCuesKey != english.url) {
+                cleanAnchorCues = SubtitleProfanity.loadCues(english.url, english.headers)
+                cleanAnchorCuesKey = english.url
+            }
+            val cues = cleanAnchorCues
+            val matches = withContext(AutomaticSubtitleSync.autoSyncDispatcher) { CleanStreamAnchors.match(anchors, cues) }
+            val englishRef = cues.map { it.startMs to it.endMs }.sortedBy { it.first }.distinct()
+                .takeIf { it.size >= TimingRef.MIN_CUES }
+                ?.let { TimingRef("subtitle", null, it) }
+            val shownSync = if (english.url == selected?.url) cleanSubtitleSync(english.url)?.second else null
+            val delay = state.subtitleDelayMs.toLong()
+            fun mapper(t: Long): Long? {
+                val inSubtitle = CleanStreamAnchors.transformAt(matches, t)?.map(t) ?: return null
+                return when {
+                    // The English subtitle is the one shown: its timing on screen is this copy's
+                    english.url == selected?.url -> (shownSync?.invoke(inSubtitle) ?: inSubtitle) + delay
+                    local != null && englishRef != null ->
+                        CleanStreamAligner.transformAt(local, englishRef, inSubtitle)?.map(inSubtitle)
+                    else -> null
+                }
+            }
+            ::mapper
+        }
+
+        /** A skip without a fingerprint placed by its dialogue, or null when that is not clear. */
+        fun byDialogue(skip: CleanSkip): CleanSkip? {
+            val map = toViewer ?: return null
+            val start = map(skip.startMs) ?: return null
+            val end = (map(skip.endMs) ?: (start + (skip.endMs - skip.startMs))).coerceAtLeast(start + 500)
+            return skip.copy(startMs = start, endMs = end)
+        }
 
         /**
          * Where a skip without a fingerprint goes on this copy, using a correction
@@ -204,6 +246,7 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
         suspend fun line(skip: CleanSkip): CleanSkip {
             val ref = skip.refId?.let { refs[it] }
             val placed = withContext(AutomaticSubtitleSync.autoSyncDispatcher) {
+                if (skip.refId == null) byDialogue(skip)?.let { return@withContext it }
                 val transform = (if (local != null && ref != null) CleanStreamAligner.transformAt(local, ref, skip.startMs) else null)
                     ?: CleanStreamAligner.frameRateTransform(duration, ref?.durationMs ?: skip.durationMs)
                 when {

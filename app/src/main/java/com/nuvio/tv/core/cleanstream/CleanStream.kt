@@ -163,7 +163,12 @@ data class CleanStreamSkips(
     val pending: List<CleanSkip> = emptyList(),
     /** Timing corrections viewers made for skips without a fingerprint, per copy. */
     val corrections: List<TimingCorrection> = emptyList(),
+    /** Dialogue quoted by skips without a fingerprint, to line those skips up by the subtitle. */
+    val anchors: List<DialogueAnchor> = emptyList(),
 )
+
+/** A line of dialogue (as quoted, maybe censored) heard at [timeMs] in the skip data's copy. */
+data class DialogueAnchor(val timeMs: Long, val text: String)
 
 /** On the copy with fingerprint [refId], skips without a fingerprint belong [offsetMs] later. */
 data class TimingCorrection(val refId: String, val offsetMs: Long)
@@ -366,6 +371,14 @@ object CleanStreamClient {
                         val o = a.optJSONObject(i) ?: return@mapNotNull null
                         val refId = o.optString("refId").takeIf { it.matches(Regex("^[0-9a-f]{16}$")) } ?: return@mapNotNull null
                         TimingCorrection(refId, o.optLong("offsetMs", 0))
+                    }
+                }.orEmpty(),
+                anchors = json.optJSONArray("anchors")?.let { a ->
+                    (0 until minOf(a.length(), 400)).mapNotNull { i ->
+                        val o = a.optJSONObject(i) ?: return@mapNotNull null
+                        val text = o.optString("text").take(120).takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                        val t = o.optLong("t", -1L).takeIf { it >= 0 } ?: return@mapNotNull null
+                        DialogueAnchor(t, text)
                     }
                 }.orEmpty(),
             )
