@@ -602,6 +602,11 @@ class PlayerRuntimeController(
     // Dialogue quoted by skips without a fingerprint, and the English subtitle lines matched against it
     // The title the start-of-playback notice was last shown for
     internal var cleanStartNoticeKey: String? = null
+    // "Review unconfirmed scenes": how long each was watched, which were asked about
+    internal val cleanReviewWatched: MutableMap<String, Long> = mutableMapOf()
+    internal val cleanReviewed: MutableSet<String> = mutableSetOf()
+    internal var cleanReviewLastPos: Long? = null
+    internal var cleanReviewJob: kotlinx.coroutines.Job? = null
     internal var cleanAnchors: List<com.nuvio.tv.core.cleanstream.DialogueAnchor> = emptyList()
     internal var cleanAnchorCuesKey: String? = null
     internal var cleanAnchorCues: List<com.nuvio.tv.core.cleanstream.SubtitleProfanity.Cue> = emptyList()

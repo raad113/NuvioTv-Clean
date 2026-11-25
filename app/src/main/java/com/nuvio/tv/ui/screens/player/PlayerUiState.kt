@@ -212,6 +212,8 @@ data class PlayerUiState(
     val cleanStreamMarking: Boolean = false,
     /** Where the scene being marked started (for the red "Marking" tag), or null. */
     val cleanStreamMarkStartMs: Long? = null,
+    /** "Was this scene right?" after an unconfirmed scene played (review setting), or null. */
+    val cleanReview: CleanStreamReviewPrompt? = null,
     // NuvioTv-Clean: the "Skip timing for this film" panel
     val cleanTimingPanelVisible: Boolean = false,
     val cleanTimingOffsetMs: Long = 0L,

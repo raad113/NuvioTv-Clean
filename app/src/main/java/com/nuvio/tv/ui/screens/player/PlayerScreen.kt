@@ -858,6 +858,7 @@ fun PlayerScreen(
                         uiState.showSubtitleStylePanel || uiState.showSpeedDialog ||
                         uiState.showSubtitleDelayOverlay || uiState.showSubtitleTimingDialog ||
                         uiState.showMoreDialog ||
+                        uiState.cleanReview != null || // NuvioTv-Clean: "Was this scene right?"
                         shouldConfirmNextEpisodeOnEnd ||
                         uiState.postPlayMode is PostPlayMode.StillWatching ||
                         postPlayRecommendationState.isVisible ||
@@ -1717,6 +1718,21 @@ fun PlayerScreen(
                 .then(playerControlsDim)
         ) {
             AspectRatioIndicator(text = uiState.aspectRatioIndicatorText)
+        }
+
+        // NuvioTv-Clean: "Was this scene right?" after an unconfirmed scene played
+        uiState.cleanReview?.let { review ->
+            CleanStreamReviewPanel(
+                prompt = review,
+                onAnswer = { right ->
+                    viewModel.onCleanStreamReview(right)
+                    runCatching { containerFocusRequester.requestFocus() }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 48.dp, bottom = 120.dp)
+                    .zIndex(6f)
+            )
         }
 
         // NuvioTv-Clean: red tag while a scene is being marked, until its end is marked

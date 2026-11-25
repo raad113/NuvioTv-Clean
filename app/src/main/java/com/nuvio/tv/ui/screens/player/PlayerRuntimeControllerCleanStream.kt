@@ -98,6 +98,11 @@ internal fun PlayerRuntimeController.fetchCleanStreamSkips(id: String?, season: 
     cleanAlignJob = null
     cleanDisabledIds.clear()
     cleanUndo = null
+    cleanReviewWatched.clear()
+    cleanReviewed.clear()
+    cleanReviewLastPos = null
+    cleanReviewJob?.cancel()
+    _uiState.update { it.copy(cleanReview = null) }
     // A ♥ start mark from the previous title must not become this title's scene
     cleanMarkStartMs = null
     cleanShareJob?.cancel()
@@ -176,6 +181,7 @@ private fun PlayerRuntimeController.applyCleanStreamSkipsUnsafe(positionMs: Long
         releaseCleanStreamMute()
         return
     }
+    if (config.reviewScenes) trackCleanStreamReview(positionMs, config.offsetMs)
     // Timing adjustment and safety margin from settings
     val startShift = config.offsetMs - config.marginMs
     val endShift = config.offsetMs + config.marginMs

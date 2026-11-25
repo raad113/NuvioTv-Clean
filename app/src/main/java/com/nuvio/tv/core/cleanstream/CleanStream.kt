@@ -65,6 +65,8 @@ data class CleanStreamConfig(
     val customMuteWords: String = "",
     /** Per profile: show a "Skip" button to press (the default), or skip scenes by themselves. */
     val skipWithButton: Boolean = true,
+    /** Per profile: let unconfirmed scenes play and ask afterwards whether they were right (off by default). */
+    val reviewScenes: Boolean = false,
     /** This TV's trusted-editor key (created by the server owner on /admin), or empty. */
     val editorKey: String = "",
     /** Send crash and error reports to the CleanStream server (the viewer's choice, off by default). */
@@ -198,6 +200,7 @@ object CleanStreamSettings {
     private const val KEY_SUB_MUTE_PREFIX = "subtitle_mute_enabled_"
     private const val KEY_SUB_WORDS_PREFIX = "subtitle_mute_words_"
     private const val KEY_SKIP_BUTTON_PREFIX = "skip_with_button_"
+    private const val KEY_REVIEW_PREFIX = "review_scenes_"
 
     /** The Nuvio profile whose subtitle-muting settings are in use. */
     private var activeProfileId: Int = 1
@@ -234,6 +237,7 @@ object CleanStreamSettings {
             subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + activeProfileId, false),
             customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + activeProfileId, null) ?: "",
             skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, true),
+            reviewScenes = p.getBoolean(KEY_REVIEW_PREFIX + activeProfileId, false),
             editorKey = p.getString(KEY_EDITOR, null) ?: "",
             sendCrashReports = p.getBoolean(KEY_SEND_REPORTS, false),
         )
@@ -294,6 +298,7 @@ object CleanStreamSettings {
             subtitleMuteEnabled = p.getBoolean(KEY_SUB_MUTE_PREFIX + profileId, false),
             customMuteWords = p.getString(KEY_SUB_WORDS_PREFIX + profileId, null) ?: "",
             skipWithButton = p.getBoolean(KEY_SKIP_BUTTON_PREFIX + profileId, true),
+            reviewScenes = p.getBoolean(KEY_REVIEW_PREFIX + profileId, false),
         )
     }
 
@@ -314,6 +319,12 @@ object CleanStreamSettings {
     fun setSkipWithButton(withButton: Boolean) {
         prefs?.edit()?.putBoolean(KEY_SKIP_BUTTON_PREFIX + activeProfileId, withButton)?.apply()
         state.value = state.value.copy(skipWithButton = withButton)
+    }
+
+    /** This profile: watch unconfirmed scenes and say afterwards whether they were right. */
+    fun setReviewScenes(enabled: Boolean) {
+        prefs?.edit()?.putBoolean(KEY_REVIEW_PREFIX + activeProfileId, enabled)?.apply()
+        state.value = state.value.copy(reviewScenes = enabled)
     }
 
     fun setSubtitleMuteEnabled(enabled: Boolean) {

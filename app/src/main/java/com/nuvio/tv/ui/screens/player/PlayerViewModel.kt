@@ -262,6 +262,7 @@ class PlayerViewModel @Inject constructor(
 
     /** NuvioTv-Clean: the ♥ button marks the start, then the end, of a scene to share. */
     fun onCleanStreamMark() = controller.toggleCleanStreamMark()
+    fun onCleanStreamReview(right: Boolean?) = controller.answerCleanStreamReview(right)
     fun onCleanStreamTimingOpen() = controller.openCleanStreamTiming()
     fun onCleanStreamTimingAdjust(deltaMs: Long) = controller.adjustCleanStreamTiming(deltaMs)
     fun onCleanStreamTimingReset() = controller.resetCleanStreamTiming()

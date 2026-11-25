@@ -107,6 +107,20 @@ fun CleanStreamSettingsContent(
                             modifier = Modifier
                         )
                     }
+                    item(key = "cleanstream_review") {
+                        SettingsActionRow(
+                            title = "Review unconfirmed scenes (this profile)",
+                            subtitle = if (config.reviewScenes) {
+                                "Unconfirmed scenes still show a Skip button. If you let one play, you are asked when it ends whether it was right, to confirm or remove it for everyone. For adults only"
+                            } else {
+                                "For adults who want to help: watch scenes others marked and say whether they were right. Off: they are offered as a Skip button"
+                            },
+                            value = if (config.reviewScenes) "On" else "Off",
+                            onClick = { CleanStreamSettings.setReviewScenes(!config.reviewScenes) },
+                            enabled = config.enabled,
+                            modifier = Modifier
+                        )
+                    }
                     item(key = "cleanstream_server") {
                         SettingsActionRow(
                             title = "CleanStream server",

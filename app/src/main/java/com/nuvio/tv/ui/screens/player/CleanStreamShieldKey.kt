@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -110,3 +112,46 @@ internal fun CleanStreamMarkingTag(startMs: Long?, positionMs: Long, modifier: M
         )
     }
 }
+
+/** "Was this scene right?" with two buttons; Back closes it without answering. */
+@Composable
+internal fun CleanStreamReviewPanel(
+    prompt: CleanStreamReviewPrompt,
+    onAnswer: (Boolean?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val yesFocus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+    androidx.compose.runtime.LaunchedEffect(prompt) { runCatching { yesFocus.requestFocus() } }
+    androidx.compose.foundation.layout.Column(
+        modifier = modifier
+            .background(Color(0xE6101418), RoundedCornerShape(12.dp))
+            .padding(16.dp)
+            .closeOnBack { onAnswer(null) },
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = "Was this scene marked right?",
+            color = Color.White,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(text = "Marked as: ${prompt.label}", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            androidx.tv.material3.Button(
+                onClick = { onAnswer(true) },
+                modifier = Modifier.focusRequester(yesFocus),
+            ) { Text("✓ Yes, skip it for everyone") }
+            androidx.tv.material3.OutlinedButton(onClick = { onAnswer(false) }) { Text("✗ Not a scene") }
+        }
+    }
+}
+
+/** Back (and Escape) closes without answering. */
+private fun Modifier.closeOnBack(onBack: () -> Unit): Modifier =
+    this.then(Modifier.onKeyEvent { e ->
+        val code = e.nativeKeyEvent.keyCode
+        if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_ESCAPE) {
+            if (e.nativeKeyEvent.action == KeyEvent.ACTION_UP) onBack()
+            true
+        } else false
+    })
