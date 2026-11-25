@@ -227,6 +227,7 @@ internal fun PlayerRuntimeController.skipInterval(interval: SkipInterval): Boole
     scheduleProgressSyncAfterSeek()
     publishPartyPlayback(positionMs = target)
     _uiState.update { it.copy(activeSkipInterval = null, skipIntervalDismissed = true) }
+    onCleanStreamButtonSkipped(interval, target) // NuvioTv-Clean: offer "Wrong skip? Go back"
     return true
 }
 

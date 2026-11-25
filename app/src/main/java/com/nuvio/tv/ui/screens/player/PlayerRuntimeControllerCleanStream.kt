@@ -389,6 +389,18 @@ private fun PlayerRuntimeController.cleanStreamPendingIntervalsUnsafe(): List<Sk
     }
 }
 
+/**
+ * The viewer pressed "Skip <scene>" on a confirmed scene: as after an automatic
+ * skip, offer "Wrong skip? Go back" for a few seconds, so a wrong scene can be
+ * reported with the Skip button too.
+ */
+internal fun PlayerRuntimeController.onCleanStreamButtonSkipped(interval: SkipInterval, landingMs: Long) {
+    if (!interval.provider.startsWith(CLEANSTREAM_BUTTON_PROVIDER_PREFIX)) return
+    val key = interval.provider.removePrefix(CLEANSTREAM_BUTTON_PROVIDER_PREFIX)
+    val skip = cleanSkips.firstOrNull { it.key == key } ?: return
+    offerCleanStreamUndo(skip, landingMs)
+}
+
 /** The viewer pressed "Skip" on an unconfirmed scene: confirm it on the server. */
 internal fun PlayerRuntimeController.onCleanStreamPromptSkipped(interval: SkipInterval) {
     if (!interval.provider.startsWith(CLEANSTREAM_PROVIDER_PREFIX)) return
