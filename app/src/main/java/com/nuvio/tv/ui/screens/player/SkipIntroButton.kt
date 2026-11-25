@@ -203,8 +203,9 @@ fun SkipIntroButton(
                 },
             // NuvioTv-Clean: its buttons are glass (translucent, light edge, mint when focused)
             colors = if (isCleanStreamInterval) CardDefaults.colors(
-                containerColor = Color(0xFF2A313A).copy(alpha = 0.55f),
-                focusedContainerColor = Color(0xFF3EE0A8).copy(alpha = 0.45f),
+                // Clear glass: the picture shows through; focused it brightens a little with a mint tint
+                containerColor = Color.White.copy(alpha = 0.10f),
+                focusedContainerColor = Color(0xFF3EE0A8).copy(alpha = 0.22f),
             ) else CardDefaults.colors(
                 containerColor = NuvioPrimitives.neutral875.copy(alpha = 0.85f),
                 focusedContainerColor = NuvioTheme.colors.Secondary
@@ -241,6 +242,7 @@ fun SkipIntroButton(
                         text = getSkipLabel(lastType, targetsPostCredits),
                         color = if (isFocused && !isCleanStreamInterval) NuvioTheme.colors.OnSecondary else Color.White,
                         fontSize = 14.sp,
+                        style = if (isCleanStreamInterval) GlassTextStyle else androidx.compose.ui.text.TextStyle.Default,
                         modifier = Modifier.padding(start = NuvioTheme.spacing.sm)
                     )
                 }

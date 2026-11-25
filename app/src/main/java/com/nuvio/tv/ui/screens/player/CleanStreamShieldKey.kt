@@ -100,6 +100,15 @@ internal fun cleanStreamShieldKey(
 /* Glass style: translucent layers, a light edge, a glow when focused   */
 /* ------------------------------------------------------------------ */
 
+/** A soft shadow under text on clear glass, so it stays readable over bright pictures. */
+internal val GlassTextStyle = androidx.compose.ui.text.TextStyle(
+    shadow = androidx.compose.ui.graphics.Shadow(
+        color = Color.Black.copy(alpha = 0.7f),
+        offset = androidx.compose.ui.geometry.Offset(0f, 1.5f),
+        blurRadius = 6f,
+    )
+)
+
 private val GlassEdge = Color.White.copy(alpha = 0.28f)
 private val GlassEdgeFocused = Color.White.copy(alpha = 0.75f)
 private val Mint = Color(0xFF3EE0A8)
@@ -107,9 +116,9 @@ private val MarkingRed = Color(0xFFE53935)
 
 /** A dark glass card for panels over the video. */
 private fun Modifier.glassPanel(shape: androidx.compose.ui.graphics.Shape): Modifier = this
-    .shadow(24.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
+    .shadow(10.dp, shape, ambientColor = Color.Black, spotColor = Color.Black)
     .background(
-        androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0xCC2A313A), Color(0xB3161A20))),
+        androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color(0x732A313A), Color(0x59161A20))),
         shape,
     )
     .border(1.dp, androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.30f), Color.White.copy(alpha = 0.06f))), shape)
@@ -125,8 +134,9 @@ private fun GlassButton(
     var focused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     val scale by androidx.compose.animation.core.animateFloatAsState(if (focused) 1.06f else 1f, label = "glassScale")
     val shape = RoundedCornerShape(50)
-    val top = tint.copy(alpha = if (focused) 0.55f else 0.22f)
-    val bottom = tint.copy(alpha = if (focused) 0.30f else 0.08f)
+    // Clear glass: mostly see-through, a little brighter when focused
+    val top = tint.copy(alpha = if (focused) 0.30f else 0.12f)
+    val bottom = tint.copy(alpha = if (focused) 0.14f else 0.04f)
     Box(
         modifier = modifier
             .graphicsLayer { scaleX = scale; scaleY = scale }
@@ -156,6 +166,7 @@ private fun GlassButton(
             color = Color.White,
             fontSize = 15.sp,
             fontWeight = if (focused) FontWeight.Bold else FontWeight.SemiBold,
+            style = GlassTextStyle,
         )
     }
 }
