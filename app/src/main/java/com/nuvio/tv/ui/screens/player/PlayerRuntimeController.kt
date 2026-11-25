@@ -604,6 +604,15 @@ class PlayerRuntimeController(
     // so strong-language muting follows the retimed subtitle, not the file's own times
     internal var cleanAutoSyncTimeline: Triple<String, String, com.nuvio.tv.ui.screens.player.autosync.AutoSyncTimelineRetimeResult>? = null
     internal var cleanPassthroughNoticeShown: Boolean = false
+    // The speech-based subtitle sync's current model (stream URL, subtitle URL, model)
+    @Volatile internal var cleanAudioSync: Triple<String, String, com.nuvio.tv.ui.screens.player.audiosync.SubtitleSyncModel>? = null
+    // Downloaded once per subtitle and words, then re-timed whenever the sync changes
+    internal var cleanSubtitleMutesRaw: List<com.nuvio.tv.core.cleanstream.CleanSkip> = emptyList()
+    internal var cleanSubtitleMutesRawKey: String? = null
+    internal var cleanRawCues: List<Pair<Long, Long>> = emptyList()
+    internal var cleanRawCuesKey: String? = null
+    internal var cleanLastAlignAt: Long = 0L
+    internal var cleanAlignBaseKey: String? = null
     internal var lastActiveSkipType: String? = null
     internal var autoSubtitleSelected: Boolean = false
     internal var isUserExplicitSubtitleSelection: Boolean = false

@@ -240,24 +240,34 @@ private fun PlayerRuntimeController.refreshCleanStreamSubtitleMutes(config: com.
     }
     val state = _uiState.value
     val subtitle = state.selectedAddonSubtitle ?: pickMuteSubtitle(state.addonSubtitles) ?: return
-    // When AutoSync retimed this subtitle, mute at the corrected times
-    val retime = cleanAutoSyncTimeline
-        ?.takeIf { (stream, url, _) -> stream == currentStreamUrl && url == subtitle.url }
-        ?.third
-    val key = "${subtitle.url}|${config.customMuteWords}|${retime?.let { System.identityHashCode(it) }}"
+    // When the subtitle was synced (AutoSync or speech sync), mute at the corrected times
+    val sync = cleanSubtitleSync(subtitle.url)
+    val rawKey = "${subtitle.url}|${config.customMuteWords}"
+    val key = "$rawKey|${sync?.first}"
     if (key == cleanSubtitleSourceKey) return
     cleanSubtitleSourceKey = key
+
+    fun retimed(raw: List<CleanSkip>): List<CleanSkip> {
+        val map = sync?.second ?: return raw
+        return raw.mapNotNull { m ->
+            val start = map(m.startMs) ?: return@mapNotNull null
+            val end = (map(m.endMs) ?: (start + (m.endMs - m.startMs))).coerceAtLeast(start + 200)
+            m.copy(startMs = start, endMs = end)
+        }
+    }
+
+    // Same subtitle and words, only the sync changed: re-time without downloading again
+    if (rawKey == cleanSubtitleMutesRawKey) {
+        cleanSubtitleMutes = retimed(cleanSubtitleMutesRaw)
+        return
+    }
     cleanSubtitleMutes = emptyList()
     launchCleanStream("cleanstream") {
         val raw = SubtitleProfanity.loadMutes(subtitle.url, subtitle.headers, config.customMuteWords)
-        val mutes = if (retime == null) raw else {
-            val mapper = com.nuvio.tv.ui.screens.player.autosync.AutoSyncTimelineTimeMapper(retime)
-            raw.map { m ->
-                val start = mapper.mapStartMs(m.startMs)
-                m.copy(startMs = start, endMs = mapper.mapEndMs(m.endMs).coerceAtLeast(start + 200))
-            }
-        }
-        if (cleanSubtitleSourceKey == key) cleanSubtitleMutes = mutes
+        if (cleanSubtitleSourceKey != key) return@launchCleanStream
+        cleanSubtitleMutesRaw = raw
+        cleanSubtitleMutesRawKey = rawKey
+        cleanSubtitleMutes = retimed(raw)
     }
 }
 

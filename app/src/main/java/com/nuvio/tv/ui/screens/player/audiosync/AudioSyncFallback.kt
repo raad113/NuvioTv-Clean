@@ -233,6 +233,8 @@ internal class AudioSyncFallback private constructor(
                 val model = controller.currentModel()
                 if (current != null && model !== appliedModel) {
                     appliedModel = model
+                    // NuvioTv-Clean: skips and muting follow the same corrected subtitle timing
+                    runtime.cleanAudioSync = model?.let { Triple(runtime.currentStreamUrl, current.url, it) }
                     apply(current, model)
                 }
                 delay(TICK_MS)

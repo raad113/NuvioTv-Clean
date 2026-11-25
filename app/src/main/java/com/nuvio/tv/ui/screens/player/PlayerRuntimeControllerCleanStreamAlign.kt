@@ -22,6 +22,9 @@ import kotlin.math.abs
  * every skip to where its scene is in this copy (see CleanStreamAligner).
  */
 
+/** Re-line-up skips at most this often when only the subtitle sync changed. */
+private const val CLEAN_REALIGN_MIN_INTERVAL_MS = 60_000L
+
 /** Wait this long after a film starts before reading its fingerprint, so the video buffers first. */
 private const val CLEAN_ALIGN_START_DELAY_MS = 15_000L
 
@@ -39,11 +42,13 @@ private const val ALIGN_NOTICE_MIN_SHIFT_MS = 1_000L
 internal suspend fun PlayerRuntimeController.cleanStreamLocalTimeline(): TimingRef? {
     val state = _uiState.value
     val selected = state.selectedAddonSubtitle
-    val key = "$currentStreamUrl|${selected?.url}|${state.subtitleDelayMs}"
+    val sync = selected?.let { cleanSubtitleSync(it.url) }
+    val key = "$currentStreamUrl|${selected?.url}|${state.subtitleDelayMs}|${sync?.first}"
     if (key == cleanLocalRefKey) return cleanLocalRef
 
     val duration = currentPlaybackDurationMs().takeIf { it > 0 }
-    val ref = embeddedTimeline(duration) ?: selected?.let { addonTimeline(it, state.subtitleDelayMs.toLong(), duration) }
+    val ref = embeddedTimeline(duration)
+        ?: selected?.let { addonTimeline(it, state.subtitleDelayMs.toLong(), sync?.second, duration) }
     // Only remember a result once the video length is known, so it is complete
     if (duration != null) {
         cleanLocalRefKey = key
@@ -66,13 +71,53 @@ private suspend fun PlayerRuntimeController.embeddedTimeline(durationMs: Long?):
 }
 
 /** Line times of the add-on subtitle the viewer chose, shifted by their subtitle delay. */
-private suspend fun addonTimeline(
+private suspend fun PlayerRuntimeController.addonTimeline(
     subtitle: com.nuvio.tv.domain.model.Subtitle,
     delayMs: Long,
+    syncedTime: ((Long) -> Long?)?,
     durationMs: Long?,
 ): TimingRef? {
-    val cues = SubtitleProfanity.loadCues(subtitle.url, subtitle.headers)
-    return toTimingRef("subtitle", cues.map { (it.startMs + delayMs) to (it.endMs + delayMs) }, durationMs)
+    // The subtitle file is downloaded once per playback
+    if (cleanRawCuesKey != subtitle.url) {
+        cleanRawCues = SubtitleProfanity.loadCues(subtitle.url, subtitle.headers).map { it.startMs to it.endMs }
+        cleanRawCuesKey = subtitle.url
+    }
+    // A synced subtitle (AutoSync or speech sync) gives this copy's real timing;
+    // otherwise the file's own times plus the viewer's subtitle delay
+    val cues = if (syncedTime != null) {
+        cleanRawCues.mapNotNull { (start, end) ->
+            val s = syncedTime(start) ?: return@mapNotNull null
+            val e = syncedTime(end) ?: (s + (end - start))
+            (s + delayMs) to (e + delayMs)
+        }
+    } else {
+        cleanRawCues.map { (start, end) -> (start + delayMs) to (end + delayMs) }
+    }
+    return toTimingRef("subtitle", cues, durationMs)
+}
+
+/**
+ * How a subtitle's own times map onto this copy of the film when Reshaped has
+ * synced that subtitle: by AutoSync (against the film's built-in subtitles)
+ * or by the speech-based sync. Returns an id of the current sync (so callers
+ * notice when it changes) and the mapping, or null when the subtitle is not synced.
+ */
+internal fun PlayerRuntimeController.cleanSubtitleSync(subtitleUrl: String): Pair<String, (Long) -> Long?>? {
+    cleanAutoSyncTimeline
+        ?.takeIf { (stream, url, _) -> stream == currentStreamUrl && url == subtitleUrl }
+        ?.third
+        ?.let { timeline ->
+            // Built only when something is actually mapped (this runs on every playback tick)
+            val mapper by lazy { com.nuvio.tv.ui.screens.player.autosync.AutoSyncTimelineTimeMapper(timeline) }
+            return "autosync@${System.identityHashCode(timeline)}" to { ms: Long -> mapper.mapStartMs(ms) }
+        }
+    cleanAudioSync
+        ?.takeIf { (stream, url, _) -> stream == currentStreamUrl && url == subtitleUrl }
+        ?.third
+        ?.let { model ->
+            return "speech@${System.identityHashCode(model)}" to { ms: Long -> model.mediaTimeUs(ms * 1_000L)?.div(1_000L) }
+        }
+    return null
 }
 
 private fun toTimingRef(kind: String, raw: List<Pair<Long, Long>>, durationMs: Long?): TimingRef? {
@@ -95,8 +140,15 @@ internal fun PlayerRuntimeController.maybeAlignCleanStreamSkips() {
     val state = _uiState.value
     val hasDuration = currentPlaybackDurationMs() > 0
     val manualOffset = cleanContentKey?.let { CleanStreamSettings.titleOffset(it) }
-    val key = "$cleanSkipsKey|$currentStreamUrl|${state.selectedAddonSubtitle?.url}|${state.subtitleDelayMs}|$hasDuration|$manualOffset"
+    val baseKey = "$cleanSkipsKey|$currentStreamUrl|${state.selectedAddonSubtitle?.url}|${state.subtitleDelayMs}|$hasDuration|$manualOffset"
+    val syncId = state.selectedAddonSubtitle?.url?.let { cleanSubtitleSync(it)?.first }
+    val key = "$baseKey|$syncId"
     if (key == cleanAlignKey) return
+    // Only the sync changed: the speech sync refines its model often, so re-align at most once a minute
+    val now = android.os.SystemClock.elapsedRealtime()
+    if (baseKey == cleanAlignBaseKey && now - cleanLastAlignAt < CLEAN_REALIGN_MIN_INTERVAL_MS) return
+    cleanAlignBaseKey = baseKey
+    cleanLastAlignAt = now
     cleanAlignKey = key
     cleanAlignJob?.cancel()
     val requestKey = cleanSkipsKey
