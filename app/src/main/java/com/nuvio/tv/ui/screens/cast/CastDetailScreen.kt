@@ -636,6 +636,9 @@ private fun FilmographyRow(
                 },
                 posterCardStyle = posterCardStyle,
                 showLabel = true,
+                // NuvioTv-Clean: the whole name and the year, as in the rest of the app
+                fullLabel = true,
+                showReleaseInfo = true,
                 focusRequester = itemFocusRequester,
                 onFocused = {
                     if (isRestoreTarget && restoreFocusToken > 0) {

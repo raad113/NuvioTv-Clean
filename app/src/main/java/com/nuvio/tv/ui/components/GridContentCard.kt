@@ -77,6 +77,8 @@ fun GridContentCard(
     downFocusRequester: FocusRequester? = null,
     depthSurface: CardDepthSurface = CardDepthSurface.POSTERS,
     showReleaseInfo: Boolean = false,
+    /** NuvioTv-Clean: show the whole name on up to two lines instead of one scrolling line. */
+    fullLabel: Boolean = false,
     onLongPress: (() -> Unit)? = null,
     onFocused: () -> Unit = {}
 ) {
@@ -369,7 +371,30 @@ fun GridContentCard(
         // NuvioTv-Clean: upcoming release tab on the poster's bottom border
         CleanStreamPosterTab(item = item, modifier = Modifier.width(posterCardStyle.width))
 
-        if (showLabel && (!showLogo || item.logo.isNullOrBlank())) {
+        if (showLabel && fullLabel && (!showLogo || item.logo.isNullOrBlank())) {
+            Text(
+                text = item.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = NuvioTheme.colors.TextPrimary,
+                maxLines = 2,
+                minLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .width(posterCardStyle.width)
+                    .padding(top = NuvioTheme.spacing.sm, start = NuvioTheme.spacing.xxs, end = NuvioTheme.spacing.xxs)
+            )
+            item.releaseInfo?.takeIf { showReleaseInfo && it.isNotBlank() }?.let { info ->
+                Text(
+                    text = info,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = NuvioTheme.extendedColors.textSecondary,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .width(posterCardStyle.width)
+                        .padding(top = 2.dp, start = NuvioTheme.spacing.xxs, end = NuvioTheme.spacing.xxs)
+                )
+            }
+        } else if (showLabel && (!showLogo || item.logo.isNullOrBlank())) {
             FocusMarqueeText(
                 text = item.name,
                 focused = isFocused,
