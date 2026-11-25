@@ -1371,11 +1371,10 @@ class TmdbMetadataService(
                     normalizedLanguage,
                     englishTitlesById
                 )
-                val movieCredits = when {
-                    preferCrewFilmography && crewMovieCredits.isNotEmpty() -> crewMovieCredits
-                    castMovieCredits.isNotEmpty() -> castMovieCredits
-                    else -> crewMovieCredits
-                }
+                // NuvioTv-Clean: everything the person worked on, as actor and as crew
+                // (an actor who also directed, a director with a cameo), main role first
+                val movieCredits = (if (preferCrewFilmography) crewMovieCredits + castMovieCredits else castMovieCredits + crewMovieCredits)
+                    .distinctBy { it.id }
 
                 val castTvCredits = mapTvCreditsFromCast(
                     credits?.cast.orEmpty(),
@@ -1387,11 +1386,8 @@ class TmdbMetadataService(
                     normalizedLanguage,
                     englishTitlesById
                 )
-                val tvCredits = when {
-                    preferCrewFilmography && crewTvCredits.isNotEmpty() -> crewTvCredits
-                    castTvCredits.isNotEmpty() -> castTvCredits
-                    else -> crewTvCredits
-                }
+                val tvCredits = (if (preferCrewFilmography) crewTvCredits + castTvCredits else castTvCredits + crewTvCredits)
+                    .distinctBy { it.id }
 
                 val detail = PersonDetail(
                     tmdbId = person.id,
@@ -1426,7 +1422,7 @@ class TmdbMetadataService(
     ): List<MetaPreview> {
         val seenMovieIds = mutableSetOf<Int>()
         return cast
-            .filter { it.mediaType == "movie" && it.posterPath != null }
+            .filter { it.mediaType == "movie" }
             .sortedByDescending { it.voteAverage ?: 0.0 }
             .mapNotNull { credit ->
                 if (!seenMovieIds.add(credit.id)) return@mapNotNull null
@@ -1441,7 +1437,7 @@ class TmdbMetadataService(
                     id = "tmdb:${credit.id}",
                     type = ContentType.MOVIE,
                     name = title,
-                    poster = buildImageUrl(credit.posterPath, "w500"),
+                    poster = buildImageUrl(credit.posterPath, "w500") ?: buildImageUrl(credit.backdropPath, "w780"),
                     posterShape = PosterShape.POSTER,
                     background = buildImageUrl(credit.backdropPath, "w1280"),
                     logo = null,
@@ -1460,7 +1456,7 @@ class TmdbMetadataService(
     ): List<MetaPreview> {
         val seenMovieIds = mutableSetOf<Int>()
         return crew
-            .filter { it.mediaType == "movie" && it.posterPath != null }
+            .filter { it.mediaType == "movie" }
             .sortedByDescending { it.voteAverage ?: 0.0 }
             .mapNotNull { credit ->
                 if (!seenMovieIds.add(credit.id)) return@mapNotNull null
@@ -1475,7 +1471,7 @@ class TmdbMetadataService(
                     id = "tmdb:${credit.id}",
                     type = ContentType.MOVIE,
                     name = title,
-                    poster = buildImageUrl(credit.posterPath, "w500"),
+                    poster = buildImageUrl(credit.posterPath, "w500") ?: buildImageUrl(credit.backdropPath, "w780"),
                     posterShape = PosterShape.POSTER,
                     background = buildImageUrl(credit.backdropPath, "w1280"),
                     logo = null,
@@ -1494,7 +1490,7 @@ class TmdbMetadataService(
     ): List<MetaPreview> {
         val seenTvIds = mutableSetOf<Int>()
         return cast
-            .filter { it.mediaType == "tv" && it.posterPath != null }
+            .filter { it.mediaType == "tv" }
             .sortedByDescending { it.voteAverage ?: 0.0 }
             .mapNotNull { credit ->
                 if (!seenTvIds.add(credit.id)) return@mapNotNull null
@@ -1509,7 +1505,7 @@ class TmdbMetadataService(
                     id = "tmdb:${credit.id}",
                     type = ContentType.SERIES,
                     name = title,
-                    poster = buildImageUrl(credit.posterPath, "w500"),
+                    poster = buildImageUrl(credit.posterPath, "w500") ?: buildImageUrl(credit.backdropPath, "w780"),
                     posterShape = PosterShape.POSTER,
                     background = buildImageUrl(credit.backdropPath, "w1280"),
                     logo = null,
@@ -1528,7 +1524,7 @@ class TmdbMetadataService(
     ): List<MetaPreview> {
         val seenTvIds = mutableSetOf<Int>()
         return crew
-            .filter { it.mediaType == "tv" && it.posterPath != null }
+            .filter { it.mediaType == "tv" }
             .sortedByDescending { it.voteAverage ?: 0.0 }
             .mapNotNull { credit ->
                 if (!seenTvIds.add(credit.id)) return@mapNotNull null
@@ -1543,7 +1539,7 @@ class TmdbMetadataService(
                     id = "tmdb:${credit.id}",
                     type = ContentType.SERIES,
                     name = title,
-                    poster = buildImageUrl(credit.posterPath, "w500"),
+                    poster = buildImageUrl(credit.posterPath, "w500") ?: buildImageUrl(credit.backdropPath, "w780"),
                     posterShape = PosterShape.POSTER,
                     background = buildImageUrl(credit.backdropPath, "w1280"),
                     logo = null,

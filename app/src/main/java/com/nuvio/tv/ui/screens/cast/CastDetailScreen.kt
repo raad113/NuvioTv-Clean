@@ -184,7 +184,7 @@ private fun CastDetailContent(
 
     val allCredits = remember(person.movieCredits, person.tvCredits) {
         (person.movieCredits + person.tvCredits)
-            .distinctBy { it.id }
+            .distinctBy { it.type to it.id }
             .sortedByDescending { releaseYearSortKey(it.releaseInfo) }
     }
 
@@ -609,7 +609,7 @@ private fun FilmographyRow(
     ) {
         itemsIndexed(
             items = credits,
-            key = { _, item -> item.id + item.name }
+            key = { _, item -> "${item.type}|${item.id}|${item.name}" }
         ) { index, item ->
             val isRestoreTarget = item.id == restoreItemId
             val isFirstItem = index == 0
