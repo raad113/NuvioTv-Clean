@@ -9,11 +9,12 @@ import kotlin.math.roundToLong
  * NuvioTv-Clean: lines up skips that have no timing fingerprint (for example
  * imported VideoSkip data) by their dialogue.
  *
- * Imported strong-language entries quote the spoken line, e.g. "What the h*ll?".
- * The same line is in the English subtitle. Every match says: "at the skip
- * data's time t, this subtitle line was on screen", which allows a range of
- * shifts (the word can be anywhere in the line). The shift allowed by the most
- * matches at once is the timing difference between the skip data's copy and
+ * Imported strong-language entries name the word spoken (e.g. "damn"), and
+ * the same word is in the English subtitle. Each line containing it says
+ * "maybe, at the skip data's time t, this line was on screen", which allows a
+ * range of shifts. One word fits many lines, but a run of words at their
+ * known gaps fits the subtitle at only one timing: the shift allowed by the
+ * most anchors at once is the difference between the skip data's copy and
  * the subtitle. As elsewhere, this is worked out around each scene from the
  * nearest matches, so cut scenes and frame-rate changes are handled; with too
  * few clear matches nothing is moved.
@@ -34,8 +35,11 @@ internal object CleanStreamAnchors {
     /** Slack around a subtitle line, for slightly different line timing. */
     private const val LINE_SLACK_MS = 400L
 
-    /** An anchor that matches more lines than this is too common to tell anything. */
-    private const val MAX_MATCHES_PER_ANCHOR = 6
+    /**
+     * Only subtitle lines this close to an anchor's own time are considered
+     * (the largest shift between two releases, plus frame-rate drift).
+     */
+    private const val MAX_SHIFT_MS = 25 * 60_000L
 
     private val SCALES = listOf(1.0, 23.976 / 25.0, 25.0 / 23.976, 24.0 / 25.0, 25.0 / 24.0)
 
@@ -49,13 +53,19 @@ internal object CleanStreamAnchors {
     class Matches internal constructor(internal val pairs: List<Any>)
 
     fun match(anchors: List<DialogueAnchor>, cues: List<SubtitleProfanity.Cue>): Matches {
-        val cueWords = cues.map { words(it.text) }
+        val sorted = cues.sortedBy { it.startMs }
+        val starts = sorted.map { it.startMs }
+        val cueWords = sorted.map { words(it.text) }
         val pairs = mutableListOf<Pair3>()
         anchors.forEachIndexed { index, anchor ->
             val pattern = anchorPattern(anchor.text) ?: return@forEachIndexed
-            val hits = cues.indices.filter { containsSequence(cueWords[it], pattern) }
-            if (hits.isEmpty() || hits.size > MAX_MATCHES_PER_ANCHOR) return@forEachIndexed
-            hits.forEach { c -> pairs += Pair3(index, anchor.timeMs, cues[c].startMs, cues[c].endMs) }
+            // One word (the usual case, e.g. "damn") can be in many lines; each is a
+            // possible place, and only the true timing lines most anchors up at once
+            var c = lowerBound(starts, anchor.timeMs - MAX_SHIFT_MS)
+            while (c < sorted.size && sorted[c].startMs <= anchor.timeMs + MAX_SHIFT_MS) {
+                if (containsSequence(cueWords[c], pattern)) pairs += Pair3(index, anchor.timeMs, sorted[c].startMs, sorted[c].endMs)
+                c++
+            }
         }
         return Matches(pairs)
     }
@@ -131,13 +141,29 @@ internal object CleanStreamAnchors {
 
     /**
      * Word patterns for an anchor's text. Censored letters ("h*ll") match any
-     * one letter. Too little text to be telling gives null.
+     * one letter. A single word also matches longer forms ("fuck" in "fucking",
+     * "damn" in "goddamn"). Too little text to be telling gives null.
      */
     private fun anchorPattern(text: String): List<Regex>? {
         val list = words(text.replace(Regex("\\([^)]*\\)"), " ")).filter { w -> w.any { it.isLetter() } }
         val letters = list.sumOf { w -> w.count { it.isLetter() } }
-        if (list.isEmpty() || letters < 6) return null
-        return list.map { w -> Regex(w.split('*').joinToString("\\p{L}") { Regex.escape(it) }) }
+        if (list.isEmpty() || letters < 4) return null
+        val parts = list.map { w -> w.split('*').joinToString("\\p{L}") { Regex.escape(it) } }
+        // "fucking", "damned", "shitty", "goddamn", "bullshit", but not "hello" or "shell"
+        return if (parts.size == 1) listOf(Regex("(?:$PREFIXES)?" + parts[0] + "(?:$SUFFIXES)?")) else parts.map { Regex(it) }
+    }
+
+    private const val PREFIXES = "god|mother|motha|bull|horse|chicken|dip|holy|ape|dumb"
+    private const val SUFFIXES = "s|es|ed|er|ers|ing|in|y|ty|tiest|ting|head|heads|hole|holes|face|it|ass|bag"
+
+    private fun lowerBound(values: List<Long>, target: Long): Int {
+        var low = 0
+        var high = values.size
+        while (low < high) {
+            val mid = (low + high) ushr 1
+            if (values[mid] < target) low = mid + 1 else high = mid
+        }
+        return low
     }
 
     /** True when [pattern] appears in [words] as consecutive words. */
